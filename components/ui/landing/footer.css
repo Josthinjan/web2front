@@ -1,0 +1,38 @@
+/* footer.css */
+
+.footer {
+    background-color: #2C3E50; /* Color de fondo oscuro */
+    padding: 20px 0;
+    color: #ECF0F1; /* Color de texto claro para contraste */
+    text-align: center;
+  }
+  
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+  
+  .footer-links {
+    margin-bottom: 10px;
+  }
+  
+  .footer-link {
+    color: white; /* Color de los enlaces, un tono de azul que destaca */
+    margin: 0 15px;
+    text-decoration: none;
+    font-size: 16px;
+    transition: color 0.3s ease, text-decoration 0.3s ease;
+  }
+  
+  .footer-link:hover {
+    color: #E67E22; /* Color de los enlaces al pasar el ratón, resaltado con naranja */
+    text-decoration: underline;
+  }
+  
+  .footer-copy {
+    font-size: 14px;
+    margin-top: 10px;
+    color: #BDC3C7; /* Color de texto más claro para el mensaje de copyright */
+  }
+  

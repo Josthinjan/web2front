@@ -1,0 +1,126 @@
+
+/* Sección Principal (Hero) */
+.hero {
+    background-color: #ECF0F1;
+    padding: 60px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.hero .contenedor{
+    display: grid;
+    grid-template-columns: 60% 40%;
+}
+
+.contenido-hero {
+    flex: 1;
+}
+
+.contenido-hero h2 {
+    font-size: 36px;
+    color: #2C3E50;
+}
+
+.contenido-hero p {
+    font-size: 18px;
+    color: #7F8C8D;
+}
+
+.cta-btn {
+    background-color: #3498DB;
+    padding: 15px 30px;
+    border-radius: 5px;
+    text-decoration: none;
+    color: white;
+    font-size: 18px;
+}
+.cta-btn:hover {
+    background-color: #2C3E50;
+}
+
+.imagen-hero {
+    flex: 1;
+    text-align: right;
+}
+
+.imagen-hero img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 10px; /* Agrega bordes redondeados si lo deseas */
+}
+
+/* Sección de Características */
+.caracteristicas {
+    background-color: white;
+    padding: 60px 0;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap; /* Permite que los elementos se envuelvan si hay espacio limitado */
+}
+
+.caracteristicas .contenedor {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap; /* Permite que los elementos se envuelvan si hay espacio limitado */
+}
+
+.tarjeta-caracteristica {
+    background-color: #ECF0F1;
+    padding: 20px;
+    border-radius: 5px;
+    width: calc(35% - 40px); /* Ajusta el ancho de las tarjetas y el margen entre ellas */
+    text-align: center;
+    margin-bottom: 20px; /* Espacio entre filas si se envuelven */
+}
+
+.tarjeta-caracteristica img {
+    width: 60px; /* Ajusta el tamaño de los iconos */
+    margin-bottom: 10px;
+    margin-left: 40%; 
+}
+
+.tarjeta-caracteristica h3 {
+    color: #2C3E50;
+}
+
+.tarjeta-caracteristica p {
+    color: #7F8C8D;
+}
+
+/* Sección de Testimonios */
+.testimonios {
+    background-color: #ECF0F1;
+    padding: 40px 0;
+}
+
+.testimonios blockquote {
+    font-size: 24px;
+    color: #2C3E50;
+    text-align: center;
+    margin: 0;
+}
+
+.testimonios cite {
+    display: block;
+    margin-top: 10px;
+    color: #7F8C8D;
+    text-align: center;
+}
+
+.slider-container {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+  }
+  
+  .slider {
+    display: flex;
+    transition: transform 0.5s ease-in-out;
+  }
+  
+  .card {
+    flex: 0 0 100%;  /*Cada tarjeta ocupará el 100% del contenedor del slider */
+    box-sizing: border-box; /* Incluye el padding y el border en el ancho total */
+    margin: 0 10px; /* Margen horizontal para separación entre tarjetas */
+  }
+  
