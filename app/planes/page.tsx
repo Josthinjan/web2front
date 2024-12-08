@@ -5,8 +5,6 @@ import Swal from "sweetalert2";
 import { FaMoneyCheckAlt, FaPaypal, FaEye, FaEyeSlash } from 'react-icons/fa';
 import './Register.css';
 import { config } from "@/config/config";
-import Footer from '@/components/landing/footer';
-import Header from "@/components/landing/header";
 
 const Register: React.FC = () => {
     const [formData, setFormData] = useState({
@@ -17,7 +15,7 @@ const Register: React.FC = () => {
         correo_electronico: '',
         password: '',
         repeatPassword: '',
-        rol: 'owner',
+        rol_id: '2',
         id_plan: '',
         metodo_pago: '1'
     });
@@ -98,38 +96,40 @@ const Register: React.FC = () => {
             });
 
             const result = await response.json();
-            console.log(result);
 
             if (response.ok) {
                 if (result.redirect_url) {
-                    // Abre la URL en una nueva pestaña y guarda la referencia
-                    const newWindow = window.open(result.redirect_url, '_blank');
+                    // Abre la URL en una nueva ventana con restricciones
+                    const newWindow = window.open(
+                        result.redirect_url,
+                        'PayPalWindow',
+                        'width=800,height=600,scrollbars=no,resizable=no,toolbar=no,menubar=no,location=no,directories=no,status=no'
+                    );
 
-                    // Escucha el mensaje de la ventana emergente
-                    const handleMessage = (event: MessageEvent) => {
-                        if (event.data === 'payment_success') {
-                            // Cierra la ventana emergente
-                            if (newWindow && !newWindow.closed) {
-                                newWindow.close();
-                            }
-
-                            // Mostrar mensaje de éxito
-                            Swal.fire({
-                                title: 'Éxito',
-                                text: 'Suscripción activada correctamente.',
-                                icon: 'success',
-                                confirmButtonText: 'Ok',
-                            });
-
-                            // Remover el listener para evitar fugas de memoria
-                            window.removeEventListener('message', handleMessage);
-                        }
-                    };
-
-                    window.addEventListener('message', handleMessage);
-
-                    // Opcional: Limpiar el listener cuando se cierra la ventana
                     if (newWindow) {
+                        // Escucha el mensaje de la ventana emergente
+                        const handleMessage = (event: MessageEvent) => {
+                            if (event.origin !== window.location.origin) return;
+
+                            const { message } = event.data || {};
+                            if (message) {
+                                Swal.fire({
+                                    title: 'Resultado',
+                                    text: message,
+                                    icon: 'success',
+                                    confirmButtonText: 'Ok',
+                                });
+
+                                if (newWindow && !newWindow.closed) {
+                                    newWindow.close();
+                                }
+
+                                window.removeEventListener('message', handleMessage);
+                            }
+                        };
+
+                        window.addEventListener('message', handleMessage);
+
                         newWindow.addEventListener('unload', () => {
                             window.removeEventListener('message', handleMessage);
                         });
@@ -145,7 +145,7 @@ const Register: React.FC = () => {
             } else {
                 await Swal.fire({
                     title: 'Error',
-                    text: result.message || 'No se pudo completar el registro. Por favor, intenta nuevamente.',
+                    text: result.message || 'No se pudo completar el registro.',
                     icon: 'error',
                     confirmButtonText: 'Ok',
                 });
@@ -164,7 +164,6 @@ const Register: React.FC = () => {
 
     return (
         <div className="contenedor-register">
-            <Header />
             <div className="register-container">
                 <h2>Suscripción</h2>
                 <form onSubmit={handleSubmit} className="register-form">
@@ -311,7 +310,7 @@ const Register: React.FC = () => {
                     <button type="submit" className="submit-btn">Registrar</button>
                 </form>
             </div>
-            <Footer />
+
         </div>
     );
 };
