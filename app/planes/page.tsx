@@ -23,6 +23,7 @@ const Register: React.FC = () => {
     const [planes, setPlanes] = useState<{ id: string; name: string }[]>([]);
     const [showPassword, setShowPassword] = useState(false);
     const [showRepeatPassword, setShowRepeatPassword] = useState(false);
+    const [message, setMessage] = useState('');
 
     useEffect(() => {
         const fetchPlans = async () => {
@@ -113,18 +114,9 @@ const Register: React.FC = () => {
 
                             const { message } = event.data || {};
                             if (message) {
-                                Swal.fire({
-                                    title: 'Resultado',
-                                    text: message,
-                                    icon: 'success',
-                                    confirmButtonText: 'Ok',
-                                });
-
-                                if (newWindow && !newWindow.closed) {
-                                    newWindow.close();
-                                }
-
-                                window.removeEventListener('message', handleMessage);
+                                setMessage(message); // Almacena el mensaje en el estado
+                                newWindow.close(); // Cierra la ventana emergente
+                                showSweetAlertMessage(message); // Muestra el mensaje en SweetAlert
                             }
                         };
 
@@ -135,29 +127,26 @@ const Register: React.FC = () => {
                         });
                     }
                 } else {
-                    await Swal.fire({
-                        title: 'Éxito',
-                        text: result.message,
-                        icon: 'success',
-                        confirmButtonText: 'Ok',
-                    });
+                    setMessage(result.message); // Almacena el mensaje en el estado
+                    showSweetAlertMessage(result.message); // Muestra el mensaje en SweetAlert
                 }
             } else {
-                await Swal.fire({
-                    title: 'Error',
-                    text: result.message || 'No se pudo completar el registro.',
-                    icon: 'error',
-                    confirmButtonText: 'Ok',
-                });
+                setMessage(result.message || 'No se pudo completar el registro.'); // Almacena el mensaje en el estado
+                showSweetAlertMessage(result.message || 'No se pudo completar el registro.'); // Muestra el mensaje en SweetAlert
             }
         } catch (error) {
-            await Swal.fire({
-                title: 'Error',
-                text: 'No se pudo completar el registro. Por favor, intenta nuevamente.',
-                icon: 'error',
-                confirmButtonText: 'Ok',
-            });
+            setMessage('No se pudo completar el registro. Por favor, inténtalo de nuevo.'); // Almacena el mensaje de error en el estado
+            showSweetAlertMessage('No se pudo completar el registro. Por favor, inténtalo de nuevo.'); // Muestra el mensaje en SweetAlert
         }
+    };
+
+    const showSweetAlertMessage = (message: string) => {
+        Swal.fire({
+            title: 'Resultado',
+            text: message,
+            icon: message.includes('success') ? 'success' : 'error',
+            confirmButtonText: 'Ok',
+        });
     };
 
 
