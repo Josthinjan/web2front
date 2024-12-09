@@ -6,6 +6,7 @@ import Swal from "sweetalert2";
 import { config } from "@/config/config";
 import { getTokenFromCookie } from "@/config/config";
 import Label from "@/components/ui/label/Label";
+import Table from "@/components/shared/Table/Table";
 
 // Función para obtener las facturas del backend con paginación
 const fetchFacturas = async (page = 1, sortField = "", sortOrder = "") => {
@@ -69,6 +70,81 @@ const downloadFacturaPDF = async (id: number) => {
   }
 };
 
+
+const paymentData = [
+  {
+    fechaPago: "2024-12-01",
+    usuario: "Juan Pérez",
+    metodoPago: "Tarjeta de Crédito",
+    orderId: "ORD123456",
+    orderIdPaypal: "PP-1234567890",
+    total: "$120.00",
+    estado: "Pagado",
+    acciones: "Editar | Eliminar",
+  },
+  {
+    fechaPago: "2024-12-02",
+    usuario: "Ana Gómez",
+    metodoPago: "PayPal",
+    orderId: "ORD123457",
+    orderIdPaypal: "PP-9876543210",
+    total: "$45.50",
+    estado: "Pendiente",
+    acciones: "Editar | Eliminar",
+  },
+  {
+    fechaPago: "2024-12-03",
+    usuario: "Carlos López",
+    metodoPago: "Transferencia Bancaria",
+    orderId: "ORD123458",
+    orderIdPaypal: "PP-1122334455",
+    total: "$300.00",
+    estado: "Pendiente",
+    acciones: "Editar | Eliminar",
+  },
+  {
+    fechaPago: "2024-12-04",
+    usuario: "Laura Martínez",
+    metodoPago: "Tarjeta de Crédito",
+    orderId: "ORD123459",
+    orderIdPaypal: "PP-5566778899",
+    total: "$75.99",
+    estado: "Pagado",
+    acciones: "Editar | Eliminar",
+  },
+  {
+    fechaPago: "2024-12-05",
+    usuario: "Pedro Fernández",
+    metodoPago: "PayPal",
+    orderId: "ORD123460",
+    orderIdPaypal: "PP-6677889900",
+    total: "$250.75",
+    estado: "Pendiente",
+    acciones: "Editar | Eliminar",
+  },
+  {
+    fechaPago: "2024-12-06",
+    usuario: "Marta Rodríguez",
+    metodoPago: "Tarjeta de Crédito",
+    orderId: "ORD123461",
+    orderIdPaypal: "PP-9988776655",
+    total: "$195.20",
+    estado: "Pagado",
+    acciones: "Editar | Eliminar",
+  },
+  {
+    fechaPago: "2024-12-07",
+    usuario: "Luis Pérez",
+    metodoPago: "Transferencia Bancaria",
+    orderId: "ORD123462",
+    orderIdPaypal: "PP-2233445566",
+    total: "$500.00",
+    estado: "Pendiente",
+    acciones: "Editar | Eliminar",
+  }
+];
+
+
 const FacturasPage = () => {
   const [facturas, setFacturas] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -79,6 +155,8 @@ const FacturasPage = () => {
   const [sortOrder, setSortOrder] = useState<string>("asc");
   const [usuarios, setUsuarios] = useState<any>({});
   const [metodosPago, setMetodosPago] = useState<any>({});
+  const rowsPerPage = 5; // Número de filas por página
+
 
   useEffect(() => {
     const loadFacturas = async () => {
@@ -131,6 +209,22 @@ const FacturasPage = () => {
     setCurrentPage(newPage);
   };
 
+  const getPaginatedData = () => {
+    return paymentData.slice(
+      (currentPage - 1) * rowsPerPage,
+      currentPage * rowsPerPage
+    );
+  };
+
+  // Funciones de edición y eliminación
+  const handleEditProduct = (product: Record<string, any>) => {
+    console.log("Edit product:", product);
+  };
+
+  const handleDeleteProduct = (id: number) => {
+    console.log("Delete product with ID:", id);
+  };
+
   return (
     <main className="flex justify-center items-start w-full min-h-[calc(100vh-80px)]">
       <LateralNavbar />
@@ -147,67 +241,16 @@ const FacturasPage = () => {
           {/* Tabla de facturas */}
           <Button type="button" variant="primary" label="Agregar factura" onClick={() => {}}/>
           <div className="overflow-x-auto">
-            <table className="min-w-full border border-gray-300 rounded-lg shadow-sm">
-              <thead>
-                <tr>
-                  <th
-                    className="px-4 py-2 border-b cursor-pointer"
-                    onClick={() => handleSort("fecha_pago")}
-                  >
-                    Fecha de Pago{" "}
-                    {sortField === "fecha_pago" &&
-                      (sortOrder === "asc" ? "▲" : "▼")}
-                  </th>
-                  <th className="px-4 py-2 border-b">Usuario</th>
-                  <th className="px-4 py-2 border-b">Método de Pago</th>
-                  <th className="px-4 py-2 border-b">Order ID</th>
-                  <th className="px-4 py-2 border-b">Order ID PayPal</th>
-                  <th className="px-4 py-2 border-b">Total</th>
-                  <th className="px-4 py-2 border-b">Estado</th>
-                  <th className="px-4 py-2 border-b">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {facturas.length > 0 ? (
-                  facturas.map((factura) => (
-                    <tr key={factura.id} className="text-center">
-                      <td className="px-4 py-2 border-b">
-                        {factura.fecha_pago}
-                      </td>
-                      <td className="px-4 py-2 border-b">
-                        {factura.usuarioNombre}
-                      </td>
-                      <td className="px-4 py-2 border-b">
-                        {factura.metodoPagoNombre}
-                      </td>
-                      <td className="px-4 py-2 border-b">{factura.order_id}</td>
-                      <td className="px-4 py-2 border-b">
-                        {factura.order_id_paypal}
-                      </td>
-                      <td className="px-4 py-2 border-b">{factura.total}</td>
-                      <td className="px-4 py-2 border-b">{factura.estado}</td>
-                      <td className="px-4 py-2 border-b">
-                        <button
-                          className="bg-blue-500 text-white px-4 py-2 rounded"
-                          onClick={() => downloadFacturaPDF(factura.id)}
-                        >
-                          Descargar
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={8} className="text-center px-4 py-2 border-b">
-                      No hay facturas disponibles.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+          <Table
+              data={getPaginatedData()}
+              columns={5}
+              rowsPerPage={rowsPerPage}
+              onEdit={handleEditProduct}
+              onDelete={handleDeleteProduct}
+            />
           </div>
           {/* Paginación */}
-          <div className="flex justify-between mt-4">
+          <div className="flex justify-between mt-4 w-full">
             <button
               className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
               onClick={() => handlePageChange(currentPage - 1)}
@@ -215,9 +258,7 @@ const FacturasPage = () => {
             >
               Anterior
             </button>
-            <span>
-              Página {currentPage} de {totalPages}
-            </span>
+            <span className="font-semibold">{currentPage} / {totalPages}</span>
             <button
               className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
               onClick={() => handlePageChange(currentPage + 1)}

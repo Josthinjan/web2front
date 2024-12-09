@@ -5,6 +5,7 @@ import React, { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 import { config } from "@/config/config";
 import { getTokenFromCookie } from "@/config/config";
+import Table from "@/components/shared/Table/Table";
 
 // Función para obtener los comprobantes del backend con paginación
 const fetchComprobantes = async (page = 1, sortField = "", sortOrder = "") => {
@@ -73,6 +74,74 @@ const downloadComprobantePDF = async (id: number) => {
   }
 };
 
+
+const comprobantesData = [
+  {
+    fechaEmision: "2024-12-01",
+    codigoLote: "L001",
+    nombreUsuario: "Juan Pérez",
+    nombreProducto: "Cámara Digital",
+    cantidad: 1,
+    precioTotal: "$450.00",
+    estado: "Pagado",
+  },
+  {
+    fechaEmision: "2024-12-02",
+    codigoLote: "L002",
+    nombreUsuario: "Ana Gómez",
+    nombreProducto: "Smartphone",
+    cantidad: 2,
+    precioTotal: "$900.00",
+    estado: "Pendiente",
+  },
+  {
+    fechaEmision: "2024-12-03",
+    codigoLote: "L003",
+    nombreUsuario: "Carlos López",
+    nombreProducto: "Auriculares Bluetooth",
+    cantidad: 3,
+    precioTotal: "$150.00",
+    estado: "Pagado",
+  },
+  {
+    fechaEmision: "2024-12-04",
+    codigoLote: "L004",
+    nombreUsuario: "Laura Martínez",
+    nombreProducto: "Laptop Gaming",
+    cantidad: 1,
+    precioTotal: "$1200.00",
+    estado: "Pagado",
+  },
+  {
+    fechaEmision: "2024-12-05",
+    codigoLote: "L005",
+    nombreUsuario: "Pedro Fernández",
+    nombreProducto: "Tablet 10 pulgadas",
+    cantidad: 2,
+    precioTotal: "$400.00",
+    estado: "Pendiente",
+  },
+  {
+    fechaEmision: "2024-12-06",
+    codigoLote: "L006",
+    nombreUsuario: "Marta Rodríguez",
+    nombreProducto: "Smartwatch",
+    cantidad: 1,
+    precioTotal: "$250.00",
+    estado: "Pagado",
+  },
+  {
+    fechaEmision: "2024-12-07",
+    codigoLote: "L007",
+    nombreUsuario: "Luis Pérez",
+    nombreProducto: "Teclado Mecánico",
+    cantidad: 2,
+    precioTotal: "$220.00",
+    estado: "Pendiente",
+  }
+];
+
+
 const ComprobantesPage = () => {
   const [comprobantes, setComprobantes] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -84,6 +153,8 @@ const ComprobantesPage = () => {
   const [usuarios, setUsuarios] = useState<any>({});
   const [productos, setProductos] = useState<any>({});
   const [lotes, setLotes] = useState<any>({});
+  const rowsPerPage = 5; // Número de filas por página
+
 
   useEffect(() => {
     const loadComprobantes = async () => {
@@ -140,6 +211,22 @@ const ComprobantesPage = () => {
     setCurrentPage(newPage);
   };
 
+  const getPaginatedData = () => {
+    return comprobantesData.slice(
+      (currentPage - 1) * rowsPerPage,
+      currentPage * rowsPerPage
+    );
+  };
+
+   // Funciones de edición y eliminación
+   const handleEditProduct = (product: Record<string, any>) => {
+    console.log("Edit product:", product);
+  };
+
+  const handleDeleteProduct = (id: number) => {
+    console.log("Delete product with ID:", id);
+  };
+
   return (
     <main className="flex justify-center items-start w-full min-h-[calc(100vh-80px)]">
       <LateralNavbar />
@@ -154,72 +241,16 @@ const ComprobantesPage = () => {
           {loading && <p className="text-gray-500">Cargando...</p>}
           {error && <p className="text-red-500">{error}</p>}
           <div className="overflow-x-auto">
-            <table className="min-w-full border border-gray-300 rounded-lg shadow-sm">
-              <thead className="">
-                <tr>
-                  <th
-                    className="px-4 py-2 border-b cursor-pointer"
-                    onClick={() => handleSort("fecha_emision")}
-                  >
-                    Fecha de Emisión{" "}
-                    {sortField === "fecha_emision" &&
-                      (sortOrder === "asc" ? "▲" : "▼")}
-                  </th>
-                  <th className="px-4 py-2 border-b">Código de Lote</th>
-                  <th className="px-4 py-2 border-b">Nombre de Usuario</th>
-                  <th className="px-4 py-2 border-b">Nombre del Producto</th>
-                  <th className="px-4 py-2 border-b">Cantidad</th>
-                  <th className="px-4 py-2 border-b">Precio Total</th>
-                  <th
-                    className="px-4 py-2 border-b cursor-pointer"
-                    onClick={() => handleSort("isActive")}
-                  >
-                    Estado{" "}
-                    {sortField === "isActive" &&
-                      (sortOrder === "asc" ? "▲" : "▼")}
-                  </th>
-                  <th className="px-4 py-2 border-b">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {comprobantes.map((comprobante) => (
-                  <tr key={comprobante.id_comprobante} className="text-center">
-                    <td className="px-4 py-2 border-b">
-                      {comprobante.fecha_emision}
-                    </td>
-                    <td className="px-4 py-2 border-b">
-                      {comprobante.loteCodigo}
-                    </td>
-                    <td className="px-4 py-2 border-b">
-                      {comprobante.usuarioNombre}
-                    </td>
-                    <td className="px-4 py-2 border-b">
-                      {comprobante.productoNombre}
-                    </td>
-                    <td className="px-4 py-2 border-b">
-                      {comprobante.cantidad}
-                    </td>
-                    <td className="px-4 py-2 border-b">{`$${comprobante.precio_total}`}</td>
-                    <td className="px-4 py-2 border-b">
-                      {comprobante.isActive ? "Activo" : "Inactivo"}
-                    </td>
-                    <td className="px-4 py-2 border-b">
-                      <button
-                        className="bg-blue-500 text-white px-4 py-2 rounded"
-                        onClick={() =>
-                          downloadComprobantePDF(comprobante.id_comprobante)
-                        }
-                      >
-                        Descargar
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <Table
+              data={getPaginatedData()}
+              columns={8}
+              rowsPerPage={rowsPerPage}
+              onEdit={handleEditProduct}
+              onDelete={handleDeleteProduct}
+            />
           </div>
-          {/* Paginación */}
-          <div className="flex justify-between mt-4">
+            {/* Paginación */}
+            <div className="flex justify-between mt-4 w-full">
             <button
               className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
               onClick={() => handlePageChange(currentPage - 1)}
@@ -227,9 +258,7 @@ const ComprobantesPage = () => {
             >
               Anterior
             </button>
-            <span>
-              Página {currentPage} de {totalPages}
-            </span>
+            <span className="font-semibold">{currentPage} / {totalPages}</span>
             <button
               className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
               onClick={() => handlePageChange(currentPage + 1)}

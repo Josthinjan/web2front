@@ -5,6 +5,7 @@ import React, { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 import { config } from "@/config/config";
 import { getTokenFromCookie } from "@/config/config";
+import Table from "@/components/shared/Table/Table";
 
 // Función para obtener los métodos de pago del backend con paginación
 const fetchMetodosPago = async (page = 1, sortField = "", sortOrder = "") => {
@@ -24,12 +25,42 @@ const fetchMetodosPago = async (page = 1, sortField = "", sortOrder = "") => {
   return data;
 };
 
+const samplePaymentMethods = [
+  {
+    id: "1",
+    nombre: "Tarjeta de Crédito",
+    descripcion: "Pago con tarjeta de crédito Visa, Mastercard, o American Express.",
+  },
+  {
+    id: "2",
+    nombre: "PayPal",
+    descripcion: "Pago a través de PayPal, el servicio de pagos en línea.",
+  },
+  {
+    id: "3",
+    nombre: "Transferencia Bancaria",
+    descripcion: "Pago mediante transferencia desde tu cuenta bancaria.",
+  },
+  {
+    id: "4",
+    nombre: "Crypto (Bitcoin, Ethereum)",
+    descripcion: "Pago mediante criptomonedas como Bitcoin y Ethereum.",
+  },
+  {
+    id: "5",
+    nombre: "Pago en Efectivo",
+    descripcion: "Opción de pago en efectivo al momento de la entrega o en puntos de pago.",
+  },
+];
+
 const MetodosPagoPage = () => {
+  const [currentPage, setCurrentPage] = useState(1);  // Declarado dentro del componente
+  const rowsPerPage = 5; // Número de filas por página
+  const totalPages = Math.max(1, Math.ceil(samplePaymentMethods.length / rowsPerPage)); // Esto depende de `samplePaymentMethods.length`
+
   const [metodosPago, setMetodosPago] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [totalPages, setTotalPages] = useState<number>(1);
   const [sortField, setSortField] = useState<string>("nombre");
   const [sortOrder, setSortOrder] = useState<string>("asc");
 
@@ -38,7 +69,6 @@ const MetodosPagoPage = () => {
       try {
         const data = await fetchMetodosPago(currentPage, sortField, sortOrder);
         setMetodosPago(data.data);
-        setTotalPages(data.last_page);
       } catch (err) {
         setError("Error al cargar los métodos de pago.");
       } finally {
@@ -56,9 +86,27 @@ const MetodosPagoPage = () => {
     setSortOrder(newOrder);
   };
 
-  const handlePageChange = (newPage: number) => {
-    setCurrentPage(newPage);
-  };
+    // Funciones de edición y eliminación
+    const handleEditProduct = (product: Record<string, any>) => {
+      console.log("Edit product:", product);
+    };
+
+    const handleDeleteProduct = (id: number) => {
+      console.log("Delete product with ID:", id);
+    };
+
+    const handlePageChange = (page: number) => {
+      if (page >= 1 && page <= totalPages) {
+        setCurrentPage(page);
+      }
+    };
+
+    const getPaginatedData = () => {
+      return samplePaymentMethods.slice(
+        (currentPage - 1) * rowsPerPage,
+        currentPage * rowsPerPage
+      );
+    };
 
   return (
     <main className="flex justify-center items-start w-full min-h-[calc(100vh-80px)]">
@@ -76,59 +124,17 @@ const MetodosPagoPage = () => {
           {loading && <p className="text-gray-500">Cargando...</p>}
           {error && <p className="text-red-500">{error}</p>}
           <div className="overflow-x-auto">
-            <table className="min-w-full border border-gray-300 rounded-lg shadow-sm">
-              <thead>
-                <tr>
-                  <th
-                    className="px-4 py-2 border-b cursor-pointer"
-                    onClick={() => handleSort("nombre")}
-                  >
-                    Nombre{" "}
-                    {sortField === "nombre" &&
-                      (sortOrder === "asc" ? "▲" : "▼")}
-                  </th>
-                  <th className="px-4 py-2 border-b">Descripción</th>
-                  <th className="px-4 py-2 border-b">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {metodosPago.length > 0 ? (
-                  metodosPago.map((metodo) => (
-                    <tr key={metodo.id} className="text-center">
-                      <td className="px-4 py-2 border-b">
-                        {metodo.nombre_metodo}
-                      </td>
-                      <td className="px-4 py-2 border-b">
-                        {metodo.descripcion}
-                      </td>
-                      <td className="px-4 py-2 border-b">
-                        <Button
-                          onClick={() =>
-                            Swal.fire({
-                              title: "Detalles del Método de Pago",
-                              text: `Nombre: ${metodo.nombre_metodo}\nDescripción: ${metodo.descripcion}`,
-                              icon: "info",
-                            })
-                          }
-                          variant={"primary"}
-                          type={"submit"}
-                          label={"Ver Detalles"}
-                        />
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={3} className="text-center px-4 py-2 border-b">
-                      No hay métodos de pago disponibles.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+            {/* tabla */}
+            <Table
+              data={getPaginatedData()}
+              columns={5}
+              rowsPerPage={rowsPerPage}
+              onEdit={handleEditProduct}
+              onDelete={handleDeleteProduct}
+            />
           </div>
           {/* Paginación */}
-          <div className="flex justify-between mt-4">
+          <div className="flex justify-between mt-4 w-full">
             <button
               className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
               onClick={() => handlePageChange(currentPage - 1)}
@@ -136,9 +142,7 @@ const MetodosPagoPage = () => {
             >
               Anterior
             </button>
-            <span>
-              Página {currentPage} de {totalPages}
-            </span>
+            <span className="font-semibold">{currentPage} / {totalPages}</span>
             <button
               className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
               onClick={() => handlePageChange(currentPage + 1)}

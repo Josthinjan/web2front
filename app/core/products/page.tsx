@@ -1,106 +1,99 @@
 "use client";
+
 import Button from "@/components/shared/Button/Button";
 import LateralNavbar from "@/components/ui/lateralNavbar/LateralNavbar";
-import React, { useEffect, useState } from "react";
-import Swal from "sweetalert2";
-import { config } from "@/config/config";
-import { getTokenFromCookie } from '@/config/config';
+import React, { useState } from "react";
 import Label from "@/components/ui/label/Label";
-import { useProductModal } from "@/hooks/modals/useProductModal";
 import ProductModal from "@/components/ui/modals/ProductModal";
-
-
-
-// Función para obtener los datos de productos del backend con paginación y ordenación
-const fetchProducts = async (page = 1, sortField = "", sortOrder = "") => {
-  const token = getTokenFromCookie();
-  const response = await fetch(
-    `${config.API_BASE_URL}/productos-pagination?page=${page}&sort=${sortField}&order=${sortOrder}`,
-    {
-      headers: {
-        "Authorization": `Bearer ${token}`
-      }
-    }
-  );
-  if (!response.ok) {
-    throw new Error('Error al obtener los productos');
-  }
-  const data = await response.json();
-  return data;
-};
-
-// Función para enviar los datos del nuevo producto al backend
-const submitProductData = async (productData: any) => {
-  const token = getTokenFromCookie();
-  const response = await fetch(`${config.API_BASE_URL}/productos`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`
-    },
-    body: JSON.stringify(productData),
-  });
-  if (!response.ok) {
-    throw new Error('Error al enviar los datos del producto');
-  }
-  return response.json();
-};
-
+import Table from "@/components/shared/Table/Table"; // Asegúrate de usar la tabla reutilizable
+import { useProductModal } from "@/hooks/modals/useProductModal";
 
 const ProductsPage = () => {
   const productModal = useProductModal();
-  const [products, setProducts] = useState<any[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [totalPages, setTotalPages] = useState<number>(1);
-  const [sortField, setSortField] = useState<string>("nombre_producto");
-  const [sortOrder, setSortOrder] = useState<string>("asc");
-  const [showCreateProductForm, setShowCreateProductForm] = useState<boolean>(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  useEffect(() => {
-    const loadProducts = async () => {
-      try {
-        const data = await fetchProducts(currentPage, sortField, sortOrder);
-        setProducts(data.data);
-        setTotalPages(data.last_page);
-      } catch (err) {
-        setError("Error al cargar los productos.");
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Datos quemados de ejemplo
+  const products = [
+    {
+      id: 1,
+      nombre: "Camiseta",
+      descripcion: "Camiseta de algodón 100% con diseño único.",
+      precio: 19.99,
+      tipoProducto: "Ropa",
+      estado: "Disponible",
+    },
+    {
+      id: 2,
+      nombre: "Auriculares",
+      descripcion: "Auriculares inalámbricos con cancelación de ruido.",
+      precio: 59.99,
+      tipoProducto: "Electrónica",
+      estado: "Disponible",
+    },
+    {
+      id: 3,
+      nombre: "Taza personalizada",
+      descripcion: "Taza de cerámica con impresión a medida.",
+      precio: 12.5,
+      tipoProducto: "Accesorios",
+      estado: "Agotado",
+    },
+    {
+      id: 4,
+      nombre: "Laptop",
+      descripcion: "Laptop de 15 pulgadas, 8GB RAM, 256GB SSD.",
+      precio: 899.99,
+      tipoProducto: "Electrónica",
+      estado: "Disponible",
+    },
+    {
+      id: 5,
+      nombre: "Mochila",
+      descripcion: "Mochila resistente al agua con múltiples compartimentos.",
+      precio: 45.0,
+      tipoProducto: "Accesorios",
+      estado: "Disponible",
+    },
+    {
+      id: 6,
+      nombre: "Libro de cocina",
+      descripcion: "Recetario con más de 200 recetas internacionales.",
+      precio: 24.99,
+      tipoProducto: "Libros",
+      estado: "Agotado",
+    },
+    {
+      id: 7,
+      nombre: "Silla ergonómica",
+      descripcion: "Silla ergonómica para oficina con soporte lumbar ajustable.",
+      precio: 129.99,
+      tipoProducto: "Muebles",
+      estado: "Disponible",
+    },
+  ];
 
-    loadProducts();
-  }, [currentPage, sortField, sortOrder]); // Recargar cuando cambie la página, el campo de orden o el orden
+  const rowsPerPage = 5; // Número de filas por página
+  const totalPages = Math.max(1, Math.ceil(products.length / rowsPerPage));
 
-  const handleAddNewProduct = () => {
-    setShowCreateProductForm(true);
+  const getPaginatedData = () => {
+    return products.slice(
+      (currentPage - 1) * rowsPerPage,
+      currentPage * rowsPerPage
+    );
   };
 
-  const handleSort = (field: string) => {
-    const newOrder = sortField === field && sortOrder === "asc" ? "desc" : "asc";
-    setSortField(field);
-    setSortOrder(newOrder);
-  };
-
-  const handleSubmitProduct = async (productData: any) => {
-    try {
-      const newProduct = await submitProductData(productData);
-      if (newProduct && newProduct.id_producto) {
-        setProducts([...products, newProduct]);
-        setShowCreateProductForm(false);
-        Swal.fire("Éxito", "Producto creado exitosamente", "success");
-      } else {
-        Swal.fire("Error", "No se pudo crear el producto", "error");
-      }
-    } catch (error) {
-      Swal.fire("Error", "No se pudo crear el producto", "error");
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
     }
   };
 
-  const handlePageChange = (newPage: number) => {
-    setCurrentPage(newPage);
+  const handleEditProduct = (product: Record<string, any>) => {
+    console.log("Edit product:", product);
+  };
+
+  const handleDeleteProduct = (id: number) => {
+    console.log("Delete product with ID:", id);
   };
 
   return (
@@ -121,53 +114,20 @@ const ProductsPage = () => {
         <ProductModal />
         <div className="flex flex-col w-full">
           <h2 className="font-bold text-xl text-gray-700 mb-4">Lista de Productos Disponibles</h2>
-          {loading && <Label type="info" text="Cargando productos" />}
-          {error && <Label type="error" text="Error al cargar los productos" />}
+          {products.length === 0 && (
+            <Label type="info" text="No hay productos disponibles" />
+          )}
           <div className="overflow-x-auto">
-            <table className="min-w-full border border-gray-300 rounded-lg shadow-sm">
-              <thead className="">
-                <tr>
-                  <th
-                    className="px-4 py-2 border-b cursor-pointer"
-                    onClick={() => handleSort("nombre_producto")}
-                  >
-                    Nombre {sortField === "nombre_producto" && (sortOrder === "asc" ? "▲" : "▼")}
-                  </th>
-                  <th className="px-4 py-2 border-b">Descripción</th>
-                  <th
-                    className="px-4 py-2 border-b cursor-pointer"
-                    onClick={() => handleSort("precio")}
-                  >
-                    Precio {sortField === "precio" && (sortOrder === "asc" ? "▲" : "▼")}
-                  </th>
-                  <th className="px-4 py-2 border-b">Tipo de Producto</th>
-                  <th
-                    className="px-4 py-2 border-b cursor-pointer"
-                    onClick={() => handleSort("isActive")}
-                  >
-                    Estado {sortField === "isActive" && (sortOrder === "asc" ? "▲" : "▼")}
-                  </th>
-                  <th className="px-4 py-2 border-b">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {products.map(product => (
-                  <tr key={product.id_producto} className="text-center">
-                    <td className="px-4 py-2 border-b">{product.nombre_producto}</td>
-                    <td className="px-4 py-2 border-b">{product.descripcion_producto || "N/A"}</td>
-                    <td className="px-4 py-2 border-b">{`$${product.precio}`}</td>
-                    <td className="px-4 py-2 border-b">{product.tipo_producto || "N/A"}</td>
-                    <td className="px-4 py-2 border-b">{product.isActive ? "Inactivo" : "Activo"}</td>
-                    <td className="px-4 py-2 border-b">
-                      <Button label="Editar" type="button" variant="outline" onClick={() => { }} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <Table
+              data={getPaginatedData()}
+              columns={5}
+              rowsPerPage={rowsPerPage}
+              onEdit={handleEditProduct}
+              onDelete={handleDeleteProduct}
+            />
           </div>
           {/* Paginación */}
-          <div className="flex justify-between mt-4">
+          <div className="flex justify-between mt-4 w-full">
             <button
               className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
               onClick={() => handlePageChange(currentPage - 1)}
@@ -175,9 +135,7 @@ const ProductsPage = () => {
             >
               Anterior
             </button>
-            <span>
-              Página {currentPage} de {totalPages}
-            </span>
+            <span className="font-semibold">{currentPage} / {totalPages}</span>
             <button
               className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
               onClick={() => handlePageChange(currentPage + 1)}

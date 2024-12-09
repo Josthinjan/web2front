@@ -1,26 +1,60 @@
 "use client";
 import Button from "@/components/shared/Button/Button";
 import LateralNavbar from "@/components/ui/lateralNavbar/LateralNavbar";
-import React, { useEffect, useState } from "react";
-import CreatePlanForm from "@/components/ui/createPlanForm/CreatePlanForm";
+import React, { useState } from "react";
 import Swal from "sweetalert2";
 import { config } from "@/config/config";
-import { getTokenFromCookie } from '@/config/config';
+import { getTokenFromCookie } from "@/config/config";
+import Table from "@/components/shared/Table/Table";
 
-// Función para obtener los datos de planes del backend
-const fetchPlans = async () => {
-  const token = getTokenFromCookie();
-  const response = await fetch(`${config.API_BASE_URL}/planes`, {
-    headers: {
-      "Authorization": `Bearer ${token}`
-    }
-  });
-  if (!response.ok) {
-    throw new Error('Error al obtener los planes');
+// Datos de ejemplo
+const samplePlans = [
+  {
+    "id": "1",
+    "nombre": "Plan Básico",
+    "descripcion": "Acceso limitado a funciones básicas.",
+    "precio": "10.00",
+    "estado": "Activo",
+    "ciclos_de_facturacion": "Mensual",
+    "soporta_cantidades": "No",
+  },
+  {
+    "id": "2",
+    "nombre": "Plan Estándar",
+    "descripcion": "Acceso a funciones intermedias, ideal para pequeñas empresas.",
+    "precio": "25.00",
+    "estado": "Activo",
+    "ciclos_de_facturacion": "Anual",
+    "soporta_cantidades": "Sí",
+  },
+  {
+    "id": "3",
+    "nombre": "Plan Premium",
+    "descripcion": "Acceso completo a todas las funciones avanzadas.",
+    "precio": "50.00",
+    "estado": "Inactivo",
+    "ciclos_de_facturacion": "Mensual",
+    "soporta_cantidades": "Sí",
+  },
+  {
+    "id": "4",
+    "nombre": "Plan Corporativo",
+    "descripcion": "Solución personalizada para grandes empresas.",
+    "precio": "200.00",
+    "estado": "Activo",
+    "ciclos_de_facturacion": "Anual",
+    "soporta_cantidades": "Sí",
+  },
+  {
+    "id": "5",
+    "nombre": "Plan Lite",
+    "descripcion": "Versión reducida con funciones esenciales.",
+    "precio": "5.00",
+    "estado": "Activo",
+    "ciclos_de_facturacion": "Mensual",
+    "soporta_cantidades": "No",
   }
-  const data = await response.json();
-  return data;
-};
+];
 
 // Función para enviar los datos del nuevo plan al backend
 const submitPlanData = async (planData: any) => {
@@ -39,86 +73,62 @@ const submitPlanData = async (planData: any) => {
   return response.json();
 };
 
-
-// Función para procesar el campo billing_cycles y extraer el precio con el símbolo del dólar
-const parseBillingCycles = (cycles: string) => {
-  try {
-    const parsedCycles = JSON.parse(cycles);
-    if (Array.isArray(parsedCycles) && parsedCycles.length > 0) {
-      const cycle = parsedCycles[0];
-      const amount = cycle?.pricing_scheme?.fixed_price?.value || "N/A";
-      return `$${amount}`; // Mostrar solo el precio con el símbolo del dólar
-    }
-  } catch (e) {
-    console.error("Error al procesar billing_cycles", e);
-  }
-  return "N/A";
-};
-
-// Función para procesar el campo payment_preferences y extraer información relevante
-const parsePaymentPreferences = (preferences: string) => {
-  try {
-    const parsedPreferences = JSON.parse(preferences);
-    const autoBill = parsedPreferences.auto_bill_outstanding ? "Sí" : "No";
-    const setupFee = parsedPreferences.setup_fee?.value || "N/A";
-    return `Auto-billing: ${autoBill}, Setup Fee: $${setupFee}`; // Mostrar tarifa de configuración con el símbolo del dólar
-  } catch (e) {
-    console.error("Error al procesar payment_preferences", e);
-  }
-  return "N/A";
-};
-
-// Función para procesar el campo taxes y extraer información relevante
-const parseTaxes = (taxes: string | null) => {
-  if (taxes) {
-    try {
-      const parsedTaxes = JSON.parse(taxes);
-      // Mostrar detalles básicos de impuestos si están disponibles
-      return `Detalles: ${JSON.stringify(parsedTaxes)}`;
-    } catch (e) {
-      console.error("Error al procesar taxes", e);
-    }
-  }
-  return "N/A";
-};
-
 const PlansPage = () => {
-  const [plans, setPlans] = useState<any[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [plans, setPlans] = useState<any[]>(samplePlans); // Usar los datos de ejemplo
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [showCreatePlanForm, setShowCreatePlanForm] = useState<boolean>(false);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [rowsPerPage] = useState<number>(5);
 
-
-  useEffect(() => {
-    const loadPlans = async () => {
-      try {
-        const data = await fetchPlans();
-        setPlans(data);
-      } catch (err) {
-        setError("Error al cargar los planes.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadPlans();
-  }, []);
-  const handleAddNewPlan = () => {
-    setShowCreatePlanForm(true);
+  // Función para obtener los datos paginados
+  const getPaginatedData = () => {
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    const endIndex = startIndex + rowsPerPage;
+    return plans.slice(startIndex, endIndex);
   };
 
-  const handleSubmitPlan = async (planData: any) => {
+  // Función para manejar el cambio de página
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
+  // Calcular el número total de páginas
+  const totalPages = Math.ceil(plans.length / rowsPerPage);
+
+  // Manejo de edición de plan
+  const handleEditPlan = (id: string) => {
+    console.log("Editar plan con ID:", id);
+    // Aquí puedes implementar la lógica de edición.
+  };
+
+  // Manejo de eliminación de plan
+  const handleDeletePlan = (id: string) => {
+    console.log("Eliminar plan con ID:", id);
+    // Aquí puedes implementar la lógica de eliminación.
+  };
+
+  // Manejo de añadir nuevo plan
+  const handleAddNewPlan = async () => {
+    const newPlan = {
+      nombre: "Nuevo Plan",
+      descripcion: "Descripción del nuevo plan.",
+      precio: "30.00",
+      estado: "Activo",
+      ciclos_de_facturacion: "Mensual",
+      soporta_cantidades: "Sí",
+    };
+
     try {
-      const newPlan = await submitPlanData(planData);
-      if (newPlan && newPlan.id_plan) {
-        setPlans([...plans, newPlan]);
-        setShowCreatePlanForm(false);
-        Swal.fire("Éxito", "Plan creado exitosamente", "success");
-      } else {
-        Swal.fire("Error", "No se pudo crear el plan", "error");
-      }
+      setLoading(true);
+      const addedPlan = await submitPlanData(newPlan);
+      setPlans([...plans, addedPlan]);
+      Swal.fire("Éxito", "Nuevo plan agregado exitosamente", "success");
     } catch (error) {
-      Swal.fire("Error", "No se pudo crear el plan", "error");
+      Swal.fire("Error", "Hubo un problema al agregar el plan", "error");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -135,48 +145,39 @@ const PlansPage = () => {
             type="button"
             variant="primary"
             onClick={handleAddNewPlan}
+            disabled={loading} // Deshabilitado mientras se carga
           />
         </div>
-        {showCreatePlanForm && (
-          <CreatePlanForm onSubmit={handleSubmitPlan} />
-        )}
         <div className="flex flex-col w-full">
           <h2 className="font-bold text-xl text-gray-700 mb-4">Lista de Planes Disponibles</h2>
           {loading && <p className="text-gray-500">Cargando...</p>}
           {error && <p className="text-red-500">{error}</p>}
           <div className="overflow-x-auto">
-            <table className="min-w-full border border-gray-300 rounded-lg shadow-sm">
-              <thead className="">
-                <tr>
-                  <th className="px-4 py-2 border-b">Nombre</th>
-                  <th className="px-4 py-2 border-b">Descripción</th>
-                  <th className="px-4 py-2 border-b">Precio</th>
-                  <th className="px-4 py-2 border-b">Estado</th>
-                  <th className="px-4 py-2 border-b">Ciclos de Facturación</th>
-                  <th className="px-4 py-2 border-b">Preferencias de Pago</th>
-                  <th className="px-4 py-2 border-b">Impuestos</th>
-                  <th className="px-4 py-2 border-b">Soporta Cantidades</th>
-                  <th className="px-4 py-2 border-b">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {plans.map(plan => (
-                  <tr key={plan.id_plan} className="text-center">
-                    <td className="px-4 py-2 border-b">{plan.name}</td>
-                    <td className="px-4 py-2 border-b">{plan.description || "N/A"}</td>
-                    <td className="px-4 py-2 border-b">{parseBillingCycles(plan.billing_cycles)}</td>
-                    <td className="px-4 py-2 border-b">{plan.status}</td>
-                    <td className="px-4 py-2 border-b">Mensual</td> {/* Cambiado a "Mensual" fijo */}
-                    <td className="px-4 py-2 border-b">{parsePaymentPreferences(plan.payment_preferences)}</td>
-                    <td className="px-4 py-2 border-b">{parseTaxes(plan.taxes)}</td>
-                    <td className="px-4 py-2 border-b">{plan.quantity_supported ? "Sí" : "No"}</td>
-                    <td className="px-4 py-2 border-b">
-                      <Button label="Editar" type="button" variant="outline" onClick={() => { }} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <Table
+              data={getPaginatedData()} // Pasar los datos paginados
+              columns={7} // Número de columnas
+              rowsPerPage={rowsPerPage} // Número de filas por página
+              onEdit={handleEditPlan} // Función para editar
+              onDelete={handleDeletePlan} // Función para eliminar
+            />
+          </div>
+          {/* Paginación */}
+          <div className="flex justify-between mt-4 w-full">
+            <button
+              className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              Anterior
+            </button>
+            <span className="font-semibold">{currentPage} / {totalPages}</span>
+            <button
+              className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            >
+              Siguiente
+            </button>
           </div>
         </div>
       </div>

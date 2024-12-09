@@ -33,7 +33,7 @@ const Table: React.FC<TableProps> = ({
 
   return (
     <div className="overflow-x-auto w-full mt-4">
-      <table className="w-full table-auto border-collapse">
+      <table className="w-full table-auto border-collapse table-layout-auto">
         <thead>
           <tr>
             {Object.keys(paginatedData[0] || {}).slice(0, columns).map((key) => (
@@ -48,7 +48,7 @@ const Table: React.FC<TableProps> = ({
           {paginatedData.map((row, index) => (
             <tr key={index}>
               {Object.entries(row).slice(0, columns).map(([key, value], colIndex) => (
-                <td key={colIndex} className="border p-2">
+                <td key={colIndex} className="border p-2 break-words whitespace-normal">
                   {/* Mostrar el color como fondo en la columna de color */}
                   {colIndex === 2 ? (  // Asumimos que la columna de color es la 3ra columna
                     <div
@@ -78,6 +78,8 @@ const Table: React.FC<TableProps> = ({
           ))}
         </tbody>
       </table>
+
+      
     </div>
   );
 };

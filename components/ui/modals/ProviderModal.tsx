@@ -1,4 +1,4 @@
-import React, { ChangeEvent, FormEvent, useState } from "react";
+import React, { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import Modal from "./Modal";
 import { useProviderModal } from "@/hooks/modals/useProviderModal";
 import { IProvider } from "@/interfaces/IProvider";
@@ -6,9 +6,10 @@ import Form from "@/components/shared/Form/Form";
 import FormInput from "@/components/shared/Form/FormInput";
 import FormCheckbox from "@/components/shared/Form/FormCheckbox";
 import Button from "@/components/shared/Button/Button";
-import { validateEmail, validateIdentity, validateName } from '@/utils/FormValidation';
+import { validateEmail, validateName } from '@/utils/FormValidation';
 
 const ProviderModal = () => {
+
   const providerModal = useProviderModal();
   const [formData, setFormData] = useState<IProvider>({
     name: "",
@@ -26,6 +27,30 @@ const ProviderModal = () => {
     phone?: string;
     address?: string;
   }>({});
+
+  // useEffect para pre-cargar los datos cuando se edita un proveedor
+  useEffect(() => {
+    if (providerModal.providerToEdit) {
+      setFormData({
+        name: providerModal.providerToEdit.name,
+        email: providerModal.providerToEdit.email,
+        city: providerModal.providerToEdit.city,
+        phone: providerModal.providerToEdit.phone,
+        active: providerModal.providerToEdit.status === 'Activo',
+        address: providerModal.providerToEdit.address,
+      });
+    } else {
+      // Resetea el formulario si no hay proveedor para editar
+      setFormData({
+        name: "",
+        email: "",
+        city: "",
+        phone: "",
+        active: true,
+        address: "",
+      });
+    }
+  }, [providerModal.providerToEdit]);
 
   const validateForm = () => {
     const newErrors: {
@@ -59,14 +84,24 @@ const ProviderModal = () => {
       return false;
     }
     return true;
-
   }
+
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!validateForm()) {
       return;
     }
-    console.log(formData);
+
+    // Si hay un proveedor para editar, maneja la edición
+    if (providerModal.providerToEdit) {
+      // Lógica de actualización
+      console.log('Actualizando proveedor', formData);
+      // Aquí puedes hacer una llamada a la API para actualizar el proveedor
+    } else {
+      // Lógica de creación
+      console.log('Creando proveedor', formData);
+      // Aquí puedes hacer una llamada a la API para crear un nuevo proveedor
+    }
   }
 
   const handleChange = (
@@ -80,8 +115,6 @@ const ProviderModal = () => {
       [name]: type === "checkbox" ? checked : value,
     });
   };
-
-
 
   const providerModalBody = (
     <Form onSubmit={handleSubmit}>
@@ -139,15 +172,14 @@ const ProviderModal = () => {
       />
       
       <div>
-        <Button type="submit" variant="primary" label="Crear Proveedor" />
+        <Button type="submit" variant="primary" label={providerModal.providerToEdit ? "Actualizar Proveedor" : "Crear Proveedor"} />
       </div>
-      
     </Form>
-  
-  )
+  );
+
   return (
     <Modal 
-      title="Crear proveedor"
+      title={providerModal.providerToEdit ? "Editar Proveedor" : "Crear Proveedor"}
       isOpen={providerModal.isOpen}
       onClose={providerModal.onClose}
       body={providerModalBody}

@@ -1,181 +1,196 @@
-"use client";
+'use client';
 import Button from "@/components/shared/Button/Button";
 import LateralNavbar from "@/components/ui/lateralNavbar/LateralNavbar";
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
-import CreateProviderForm from "@/components/ui/CreateProvidersForm/CreateProvidersForm";
 import { config } from "@/config/config";
-import { getTokenFromCookie } from '@/config/config';
 import Label from "@/components/ui/label/Label";
-import ProviderModal from "@/components/ui/modals/ProviderModal";
 import { useProviderModal } from "@/hooks/modals/useProviderModal";
-// Función para obtener los datos de proveedores del backend con paginación y ordenación
-const fetchProviders = async (page = 1, sortField = "", sortOrder = "") => {
-  const token = getTokenFromCookie();
-  const response = await fetch(
-    `${config.API_BASE_URL}/proveedores-pagination?page=${page}&sort=${sortField}&order=${sortOrder}`,
-    {
-      headers: {
-        "Authorization": `Bearer ${token}`
-      }
-    }
-  );
-  if (!response.ok) {
-    throw new Error('Error al obtener los proveedores');
+import ProviderModal from "@/components/ui/modals/ProviderModal";
+import Table from "@/components/shared/Table/Table";
+
+// Datos quemados de proveedores
+const providers = [
+  { 
+    id: 1, 
+    name: 'Proveedor Tecnología', 
+    email: 'tech@example.com', 
+    phone: '555-1234', 
+    address: 'Av. Tecnológica 123', 
+    city: 'Ciudad Tech', 
+    status: 'Activo' 
+  },
+  { 
+    id: 2, 
+    name: 'Proveedor Alimentos', 
+    email: 'food@example.com', 
+    phone: '555-5678', 
+    address: 'Calle Gastronómica 456', 
+    city: 'Ciudad Gourmet', 
+    status: 'Inactivo' 
+  },
+  { 
+    id: 3, 
+    name: 'Proveedor Diseño', 
+    email: 'design@example.com', 
+    phone: '555-9012', 
+    address: 'Paseo Creativo 789', 
+    city: 'Ciudad Artística', 
+    status: 'Activo' 
+  },
+  { 
+    id: 4, 
+    name: 'Proveedor Logística', 
+    email: 'logistics@example.com', 
+    phone: '555-3456', 
+    address: 'Ruta Comercial 321', 
+    city: 'Ciudad Conexión', 
+    status: 'Activo' 
+  },
+  { 
+    id: 5, 
+    name: 'Proveedor Consultoría', 
+    email: 'consulting@example.com', 
+    phone: '555-7890', 
+    address: 'Torre Empresarial 654', 
+    city: 'Ciudad Negocios', 
+    status: 'Inactivo' 
   }
-  const data = await response.json();
-  return data;
-};
+];
 
 const ProvidersPage = () => {
   const providerModal = useProviderModal();
-  const [providers, setProviders] = useState<any[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [proveedores, setProveedores] = useState<any[]>(providers);
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [totalPages, setTotalPages] = useState<number>(1);
-  const [sortField, setSortField] = useState<string>("nombre");
-  const [sortOrder, setSortOrder] = useState<string>("asc");
+  const [totalPages, setTotalPages] = useState<number>(1); // Inicializamos con 1
 
+  const rowsPerPage = 5; // Establece la cantidad de filas por página
+
+  // Calcular el número total de páginas basado en la cantidad de proveedores
   useEffect(() => {
-    const loadProviders = async () => {
-      try {
-        const data = await fetchProviders(currentPage, sortField, sortOrder);
-        setProviders(data.data);
-        setTotalPages(data.last_page);
-      } catch (err) {
-        setError("Error al cargar los proveedores.");
-      } finally {
-        setLoading(false);
-      }
-    };
+    const totalProviders = proveedores.length;
+    const pages = Math.ceil(totalProviders / rowsPerPage);
+    setTotalPages(pages);
+  }, [proveedores]);
 
-    loadProviders();
-  }, [currentPage, sortField, sortOrder]); // Recargar cuando cambie la página, el campo de orden o el orden
-
-  const handleSort = (field: string) => {
-    const newOrder = sortField === field && sortOrder === "asc" ? "desc" : "asc";
-    setSortField(field);
-    setSortOrder(newOrder);
+  // Obtener datos paginados
+  const getPaginatedData = () => {
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    const endIndex = startIndex + rowsPerPage;
+    return proveedores.slice(startIndex, endIndex);
   };
 
-  const handlePageChange = (newPage: number) => {
-    setCurrentPage(newPage);
+  // Mostrar formulario de nuevo proveedor
+  const handleAddNewProvider = () => {
+    providerModal.onOpen();
   };
 
-  const handleCreateProvider = async (providerData: any) => {
-    const token = getTokenFromCookie();
-    const response = await fetch(`${config.API_BASE_URL}/proveedor`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
-      },
-      body: JSON.stringify(providerData),
-
-    });
-    //console log del json que se envia
-    console.log(JSON.stringify(providerData));
-    if (response.ok) {
-      Swal.fire("Éxito", "Proveedor creado con éxito.", "success");
+  // Enviar datos del proveedor al backend (placeholder)
+  const handleSubmitProveedor = async (proveedorData: any) => {
+    try {
+      // Lógica de backend simulada
+      const nuevoProv = {
+        ...proveedorData,
+        id: proveedores.length + 1
+      };
+      
+      setProveedores([...proveedores, nuevoProv]);
+      Swal.fire("Éxito", "Proveedor creado correctamente", "success");
       providerModal.onClose();
-      // Volver a cargar proveedores después de agregar uno nuevo
-      const data = await fetchProviders(currentPage, sortField, sortOrder);
-      setProviders(data.data);
-      setTotalPages(data.last_page);
-    } else {
-      Swal.fire("Error", "Error al crear el proveedor.", "error");
-      console.log(response);
+    } catch (error) {
+      Swal.fire("Error", "Ocurrió un problema al crear el proveedor", "error");
     }
+  };
+
+  // Cambiar de página en la paginación
+  const handlePageChange = (newPage: number) => {
+    if (newPage > 0 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
+
+  // Eliminar proveedor
+  const handleDeleteProvider = (id: number) => {
+    Swal.fire({
+      title: '¿Estás seguro?',
+      text: "¡Esta acción no se puede deshacer!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          setProveedores(proveedores.filter(provider => provider.id !== id));
+          Swal.fire("Eliminado", "Proveedor eliminado correctamente", "success");
+        } catch (error) {
+          Swal.fire("Error", "Ocurrió un problema al eliminar el proveedor", "error");
+        }
+      }
+    });
+  };
+
+  // Editar proveedor
+  const handleEditProvider = (provider: any) => {
+    providerModal.onOpen();
+    // En tu hook de modal, necesitarás agregar soporte para pasar el proveedor a editar
   };
 
   return (
     <main className="flex justify-center items-start w-full min-h-[calc(100vh-80px)]">
       <LateralNavbar />
-      <div className="w-full flex flex-col p-4 shadow-md rounded-lg">
-        <div className="text-start w-full mb-4 flex justify-between items-center">
+      <div className="w-full flex flex-col p-4">
+        <div className="text-start w-full mb-4">
           <h1 className="text-2xl font-bold">Administración de Proveedores</h1>
         </div>
-        {error && <Label type="error" text='Error al cargar proveedores '/>}
-        {loading && <Label type="info" text='Cargando proveedores...'/>}
-
+        <div className="flex gap-3 justify-start items-center mb-6">
+          <Button
+            label="Añadir Nuevo Proveedor"
+            type="button"
+            variant="primary"
+            onClick={handleAddNewProvider}
+          />
+        </div>
         <ProviderModal />
-
         <div className="flex flex-col w-full">
           <h2 className="font-bold text-xl text-gray-700 mb-4">Lista de Proveedores Disponibles</h2>
-          <div className=" flex mb-3">
-            <Button
-              label="Agregar Proveedor"
-              type="button"
-              variant="primary"
-              onClick={providerModal.onOpen}
-            />
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full border border-gray-300 rounded-lg shadow-sm">
-              <thead>
-                <tr>
-                  <th
-                    className="px-4 py-2 border-b cursor-pointer"
-                    onClick={() => handleSort("nombre")}
-                  >
-                    Nombre {sortField === "nombre" && (sortOrder === "asc" ? "▲" : "▼")}
-                  </th>
-                  <th className="px-4 py-2 border-b">Dirección</th>
-                  <th
-                    className="px-4 py-2 border-b cursor-pointer"
-                    onClick={() => handleSort("email")}
-                  >
-                    Email {sortField === "email" && (sortOrder === "asc" ? "▲" : "▼")}
-                  </th>
-                  <th className="px-4 py-2 border-b">Teléfono</th>
-                  <th className="px-4 py-2 border-b">Ciudad</th>
-                  <th
-                    className="px-4 py-2 border-b cursor-pointer"
-                    onClick={() => handleSort("Activo")}
-                  >
-                    Estado {sortField === "Activo" && (sortOrder === "asc" ? "▲" : "▼")}
-                  </th>
-                  <th className="px-4 py-2 border-b">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {providers.map(provider => (
-                  <tr key={provider.id_proveedor} className="text-center">
-                    <td className="px-4 py-2 border-b">{provider.nombre}</td>
-                    <td className="px-4 py-2 border-b">{provider.direccion || "N/A"}</td>
-                    <td className="px-4 py-2 border-b">{provider.email || "N/A"}</td>
-                    <td className="px-4 py-2 border-b">{provider.telefono || "N/A"}</td>
-                    <td className="px-4 py-2 border-b">{provider.Cuidad || "N/A"}</td>
-                    <td className="px-4 py-2 border-b">{provider.Activo ? "Activo" : "Inactivo"}</td>
-                    <td className="px-4 py-2 border-b">
-                      <Button label="Editar" type="button" variant="outline" onClick={() => { }} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {/* Paginación */}
-          <div className="flex justify-between mt-4">
-            <button
-              className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-            >
-              Anterior
-            </button>
-            <span>
-              Página {currentPage} de {totalPages}
-            </span>
-            <button
-              className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-            >
-              Siguiente
-            </button>
-          </div>
+          {loading && <Label type="info" text="Cargando proveedores" />}
+          {error && <Label type="error" text={error} />}
+          
+          {!loading && !error && proveedores.length > 0 ? (
+            <>
+              <Table
+                data={getPaginatedData()}
+                columns={6}
+                rowsPerPage={5}
+                onEdit={handleEditProvider}
+                onDelete={handleDeleteProvider}
+              />
+              <div className="flex justify-between mt-4 w-full">
+                <button
+                  className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  Anterior
+                </button>
+                <span>
+                  Página {currentPage} de {totalPages}
+                </span>
+                <button
+                  className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  Siguiente
+                </button>
+              </div>
+            </>
+          ) : (
+            !loading && <Label type="info" text="No hay proveedores para mostrar." />
+          )}
         </div>
       </div>
     </main>

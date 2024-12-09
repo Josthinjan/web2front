@@ -1,3 +1,5 @@
+//pagina de etiquetas
+
 "use client";
 import Button from "@/components/shared/Button/Button";
 import LateralNavbar from "@/components/ui/lateralNavbar/LateralNavbar";

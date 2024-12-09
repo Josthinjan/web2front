@@ -1,10 +1,10 @@
 import { create } from "zustand";
 
-type ProductModalState = {
+interface ProductModalState {
   isOpen: boolean;
   onOpen: () => void;
   onClose: () => void;
-};
+}
 
 export const useProductModal = create<ProductModalState>((set) => ({
   isOpen: false,
