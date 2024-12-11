@@ -9,9 +9,9 @@ export function middleware(request: NextRequest) {
   console.log(cookieStore.get('token'));
   console.log(cookieStore.get('role'));
   
-  // if (!cookieStore.has('token')) {
-  //   return NextResponse.redirect(new URL('/auth/login', request.url))
-  // }
+   if (!cookieStore.has('token')) {
+     return NextResponse.redirect(new URL('/auth/login', request.url))
+   }
   const response = NextResponse.next()
 
 

@@ -12,24 +12,25 @@ const Page = () => {
   const [sitios, setSitios] = useState<number>(0);
   const [proveedores, setProveedores] = useState<number>(0);
   const [comprobantes, setComprobantes] = useState<number>(0);
+
   const { data: providerData, error: providerError, loading: providerLoading } = useFetch({
-    url: "/api/provider",
+    url: "/proveedores",
   });
 
   const { data: userData, error: userError, loading: userLoading } = useFetch({
-    url: "/api/users",
+    url: "/usuarios",
   }); 
 
   const { data: comprobanteData, error: comprobanteError, loading: comprobanteLoading } = useFetch({
-    url: "/api/dashboard",
+    url: "/comprobantes",
   });
 
   const { data: retornoData, error: retornoError, loading: retornoLoading } = useFetch({
-    url: "/api/dashboard",
+    url: "/retornos",
   });
 
   const { data: sitioData, error: sitioError, loading: sitioLoading } = useFetch({
-    url: "/api/sitio",
+    url: "/sitios",
   });
 
   

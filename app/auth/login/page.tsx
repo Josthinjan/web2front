@@ -18,7 +18,7 @@ const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
 
   const [formData, setFormData] = useState<ILoginForm>({
-    email: "",
+    correo_electronico: "",
     password: "",
   });
 
@@ -34,76 +34,45 @@ const LoginPage: React.FC = () => {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     console.log(formData);
-    if (!formData.email || !formData.password) {
+    if (!formData.correo_electronico || !formData.password) {
       toast.error("Por favor completa todos los campos");
       return;
     }
 
-  try {
- const response = await fetch(`${config.API_BASE_URL}/login`, {
-method: "POST",
- headers: {
- "Content-Type": "application/json",
-    },
-   body: JSON.stringify(formData),
-  });
-  
- if (response.ok) {
-    const data = await response.json();
-    console.log(data);
-      const newData = {
-       email: data.email,
-      name: data.nombre,
-       role: data.rol,
-     }
-     setUser(newData); // Set user data in the store, the data is email, name and role  
-      router.push("/core/dashboard");
-     }
-  } catch (error) {
-    toast.error("Error al iniciar sesion");
-  }
-    
-    
-    setLoading(true);
-    setTimeout(() => {
-      if (
-        formData.password === "admin" &&
-        formData.email === "admin@admin.com"
-      ) {
-        router.push("/core/dashboard");
-        setUser({
-          email: formData.email,
-          name: "Admin",
-          role: "admin",
-        });
-        setLoading(false);
-        return;
-      } else if (
-        formData.password === "user" &&
-        formData.email === "user@user.com"
-      ) {
-        router.push("/core/dashboard");
-        setUser({
-          email: formData.email,
-          name: "User",
-          role: "user",
-        });
-        setLoading(false);
-        return;
-      } else if (
-        formData.password === "owner" &&
-        formData.email === "owner@owner.com"
-      ) {
-        router.push("/core/dashboard");
-        setUser({
-          email: formData.email,
-          name: "Owner",
-          role: "owner",
-        });
-        setLoading(false);
-        return;
+    try {
+      const response = await fetch(`${config.API_BASE_URL}/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const newData = {
+          role: data.role,
+          X_Tetant: data.tenant_database,
+        };
+
+        //Guardar en el sessiong storage
+        sessionStorage.setItem("token", data.token);
+        sessionStorage.setItem("role", data.role);
+        sessionStorage.setItem("X_Tenant", data.tenant_database);
+        // Opcional: guarda en cookies para el middleware
+        document.cookie = `token=${data.token}; path=/; secure; samesite=strict`;
+        document.cookie = `role=${data.role}; path=/; secure; samesite=strict`;
+        document.cookie = `X_Tenant=${data.tenant_database}; path=/; secure; samesite=strict`;
+      } else {
+        toast.error("Error al iniciar sesión");
       }
-    }, 2000);
+    } catch (error) {
+      toast.error("Error al iniciar sesión");
+    } finally {
+      setLoading(false);
+      router.push("/core/dashboard");
+    }
+
   };
 
   const handleForgotPassword = () => {
@@ -111,9 +80,9 @@ method: "POST",
   };
   /* 
   const handleForgotPassword = async () => {
-    const { value: email } = await Swal.fire({
+    const { value: correo_electronico } = await Swal.fire({
       title: 'Recuperar Contraseña',
-      input: 'email',
+      input: 'correo_electronico',
       inputLabel: 'Por favor ingresa tu correo electrónico',
       inputPlaceholder: 'correo@example.com',
       showCancelButton: true,
@@ -131,14 +100,14 @@ method: "POST",
       }
     });
 
-    if (email) {
+    if (correo_electronico) {
       try {
         const response = await fetch(`${config.API_BASE_URL}/forget`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ correo_electronico: email }),
+          body: JSON.stringify({ correo_electronico: correo_electronico }),
         });
 
         if (response.ok) {
@@ -171,11 +140,11 @@ method: "POST",
         </p>
         <form onSubmit={handleSubmit}>
           <FormInput
-            idInput="email"
+            idInput="correo_electronico"
             label="Correo Electronico"
-            name="email"
-            type="email"
-            value={formData.email}
+            name="correo_electronico"
+            type="correo_electronico"
+            value={formData.correo_electronico}
             onChange={handleChange}
             placeholder="ejemplo@inventorypro.com"
           />

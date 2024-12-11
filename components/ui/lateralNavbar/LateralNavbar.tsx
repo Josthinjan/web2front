@@ -19,7 +19,7 @@ import useUserStore from "@/stores/useUserStore";
 import { GrNote } from "react-icons/gr";
 
 const LateralNavbar = () => {
-  
+
   const router = useRouter();
   const user = useUserStore((state) => state.user);
 
@@ -37,12 +37,12 @@ const LateralNavbar = () => {
       <div className="w-[300px] bg-transparent h-full px-5 py-4 bg-white border-r border-gray-200">
         <div className="border border-gray-400 rounded px-4 py-2 flex justify-center items-center mb-5 font-bold">
           <span className="flex items-center justify-center text-blue-400">
-            IVENTORY
+            INVENTORY
           </span>
           PRO
         </div>
         <nav className="px-3 flex flex-col gap-5">
-          {user?.role === "admin" && (
+          {user?.role === "Admin" && (
             <div>
               <h3 className="font-bold text-xl mb-3">Administracion</h3>
               <ul>
@@ -119,79 +119,52 @@ const LateralNavbar = () => {
               </ul>
             </div>
           )}
-          {user?.role === "owner" && (
-            <div>
-              <h3 className="font-bold text-xl mb-3">Propietario</h3>
-              <ul>
-                <NavLinkItem
-                  href="/core/dashboard"
-                  label="Panel de control"
-                  Icon={BsColumnsGap}
+          <div>
+            <h3 className="font-bold text-xl mb-3">Propietario</h3>
+            <ul>
+              <NavLinkItem
+                href="/core/dashboard"
+                label="Panel de control"
+                Icon={BsColumnsGap}
+              />
+              <NavLinkItem
+                href="/core/sitios"
+                label="Bodegas y Sitios"
+                Icon={CiBoxes}
+              />
+              <NavLinkItem
+                href="/core/users"
+                label="Usuarios"
+                Icon={FaRegUser}
+              />
+              <NavLinkItem
+                href="/core/products"
+                label="Productos"
+                Icon={BsBox2}
+              />
+              <NavLinkItem
+                href="/core/tags"
+                label="Etiquetas"
+                Icon={GrNote}
+              />
+              <NavLinkItem
+                href="/core/providers"
+                label="Proveedores"
+                Icon={FaRegUser}
+              />
+              <NavLinkItem href="/core/lotes" label="Lotes" Icon={CiBoxes} />
+              <li className="text-sm cursor-pointer font-light px-3 py-2 flex justify-start items-center gap-2">
+                <Button
+                  label="Salir"
+                  type="button"
+                  variant="outline"
+                  onClick={logout}
+                  Icon={BsBoxArrowLeft}
                 />
-                <NavLinkItem
-                  href="/core/sitios"
-                  label="Bodegas y Sitios"
-                  Icon={CiBoxes}
-                />
-                <NavLinkItem
-                  href="/core/users"
-                  label="Usuarios"
-                  Icon={FaRegUser}
-                />
-                <NavLinkItem
-                  href="/core/products"
-                  label="Productos"
-                  Icon={BsBox2}
-                />
-                <NavLinkItem
-                  href="/core/tags"
-                  label="Etiquetas"
-                  Icon={GrNote}
-                />
-                <NavLinkItem
-                  href="/core/providers"
-                  label="Proveedores"
-                  Icon={FaRegUser}
-                />core
-                <NavLinkItem href="/core/lotes" label="Lotes" Icon={CiBoxes} />
-                <li className="text-sm cursor-pointer font-light px-3 py-2 flex justify-start items-center gap-2">
-                  <Button
-                    label="Salir"
-                    type="button"
-                    variant="outline"
-                    onClick={logout}
-                    Icon={BsBoxArrowLeft}
-                  />
-                </li>
-              </ul>
-            </div>
-          )}
-          {user?.role === "user" && (
-            <div>
-              <h3 className="font-bold text-xl mb-3">Usuario</h3>
-              <ul>
-                <NavLinkItem
-                  href="/core/dashboard"
-                  label="Panel de control"
-                  Icon={BsColumnsGap}
-                />
-                <NavLinkItem
-                  href="/core/sitios"
-                  label="Bodegas y Sitios"
-                  Icon={CiBoxes}
-                />
-                <li className="text-sm cursor-pointer font-light px-3 py-2 flex justify-start items-center gap-2">
-                  <Button
-                    label="Salir"
-                    type="button"
-                    variant="outline"
-                    onClick={logout}
-                    Icon={BsBoxArrowLeft}
-                  />
-                </li>
-              </ul>
-            </div>
-          )}
+              </li>
+            </ul>
+          </div>
+
         </nav>
       </div>
     </>

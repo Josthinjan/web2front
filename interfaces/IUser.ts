@@ -5,4 +5,5 @@ export interface IUser {
   identity: string;
   email: string;
   role: string;
+  X_Tenant: string;
 }
