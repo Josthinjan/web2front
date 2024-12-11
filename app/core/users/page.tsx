@@ -32,7 +32,7 @@ const Page = () => {
     error: userError,
     loading: userLoading,
   } = useFetch({
-    url: "/api/users",
+    url: "/usuarios",
   });
 
   // El estado se actualiza cuando los datos de usuario se carguen
