@@ -1,156 +1,133 @@
 "use client";
 import Button from "@/components/shared/Button/Button";
 import LateralNavbar from "@/components/ui/lateralNavbar/LateralNavbar";
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
-import { config } from "@/config/config";
-import { getTokenFromCookie } from "@/config/config";
-import Table from "@/components/shared/Table/Table";
+import Table from "@/components/shared/Table/Table"; // Importa el componente Table
+import MetodoPagoModal from "@/components/ui/modals/MetodoPagoModal"; // Importa el modal
+import { useMetodoPagoModal } from "@/hooks/modals/useMetodoPagoModal"; // Importa el hook para manejar el modal
+import { IMetodoPago } from "@/interfaces/IMetodoPago"; // Importa la interfaz de metodo de pago
 
-// Función para obtener los métodos de pago del backend con paginación
-const fetchMetodosPago = async (page = 1, sortField = "", sortOrder = "") => {
-  const token = getTokenFromCookie();
-  const response = await fetch(
-    `${config.API_BASE_URL}/metodo-pagination?page=${page}&sort=${sortField}&order=${sortOrder}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
-  if (!response.ok) {
-    throw new Error("Error al obtener los métodos de pago");
-  }
-  const data = await response.json();
-  return data;
-};
-
-const samplePaymentMethods = [
-  {
-    id: "1",
-    nombre: "Tarjeta de Crédito",
-    descripcion: "Pago con tarjeta de crédito Visa, Mastercard, o American Express.",
-  },
-  {
-    id: "2",
-    nombre: "PayPal",
-    descripcion: "Pago a través de PayPal, el servicio de pagos en línea.",
-  },
-  {
-    id: "3",
-    nombre: "Transferencia Bancaria",
-    descripcion: "Pago mediante transferencia desde tu cuenta bancaria.",
-  },
-  {
-    id: "4",
-    nombre: "Crypto (Bitcoin, Ethereum)",
-    descripcion: "Pago mediante criptomonedas como Bitcoin y Ethereum.",
-  },
-  {
-    id: "5",
-    nombre: "Pago en Efectivo",
-    descripcion: "Opción de pago en efectivo al momento de la entrega o en puntos de pago.",
-  },
+// Datos de ejemplo de métodos de pago
+const metodosPago: IMetodoPago[] = [
+  { id: 1, nombre: "Tarjeta de Crédito", descripcion: "Pago a través de tarjeta de crédito" },
+  { id: 2, nombre: "Transferencia Bancaria", descripcion: "Pago mediante transferencia desde banco" },
+  { id: 3, nombre: "PayPal", descripcion: "Pago a través de cuenta de PayPal" },
 ];
 
 const MetodosPagoPage = () => {
-  const [currentPage, setCurrentPage] = useState(1);  // Declarado dentro del componente
-  const rowsPerPage = 5; // Número de filas por página
-  const totalPages = Math.max(1, Math.ceil(samplePaymentMethods.length / rowsPerPage)); // Esto depende de `samplePaymentMethods.length`
-
-  const [metodosPago, setMetodosPago] = useState<any[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const metodoPagoModal = useMetodoPagoModal();
+  const [metodosPagoData, setMetodosPagoData] = useState<IMetodoPago[]>(metodosPago);
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [sortField, setSortField] = useState<string>("nombre");
-  const [sortOrder, setSortOrder] = useState<string>("asc");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const rowsPerPage = 5;
 
+  // Calcular el número total de páginas
   useEffect(() => {
-    const loadMetodosPago = async () => {
-      try {
-        const data = await fetchMetodosPago(currentPage, sortField, sortOrder);
-        setMetodosPago(data.data);
-      } catch (err) {
-        setError("Error al cargar los métodos de pago.");
-      } finally {
-        setLoading(false);
-      }
-    };
+    const totalPagesCalculated = Math.ceil(metodosPagoData.length / rowsPerPage);
+    setTotalPages(totalPagesCalculated);
+  }, [metodosPagoData]);
 
-    loadMetodosPago();
-  }, [currentPage, sortField, sortOrder]);
-
-  const handleSort = (field: string) => {
-    const newOrder =
-      sortField === field && sortOrder === "asc" ? "desc" : "asc";
-    setSortField(field);
-    setSortOrder(newOrder);
+  // Obtener datos de la página actual para la paginación
+  const getPaginatedData = () => {
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    const endIndex = startIndex + rowsPerPage;
+    return metodosPagoData.slice(startIndex, endIndex);
   };
 
-    // Funciones de edición y eliminación
-    const handleEditProduct = (product: Record<string, any>) => {
-      console.log("Edit product:", product);
-    };
+  // Cambiar de página en la paginación
+  const handlePageChange = (newPage: number) => {
+    if (newPage > 0 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
 
-    const handleDeleteProduct = (id: number) => {
-      console.log("Delete product with ID:", id);
-    };
-
-    const handlePageChange = (page: number) => {
-      if (page >= 1 && page <= totalPages) {
-        setCurrentPage(page);
+  // Eliminar método de pago
+  const handleDeleteMetodoPago = (id: string | number) => {
+    Swal.fire({
+      title: '¿Estás seguro?',
+      text: "¡Esta acción no se puede deshacer!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          setMetodosPagoData(metodosPagoData.filter(metodo => metodo.id !== id));
+          Swal.fire("Eliminado", "Método de pago eliminado correctamente", "success");
+        } catch (error) {
+          Swal.fire("Error", "Ocurrió un problema al eliminar el método de pago", "error");
+        }
       }
-    };
+    });
+  };
 
-    const getPaginatedData = () => {
-      return samplePaymentMethods.slice(
-        (currentPage - 1) * rowsPerPage,
-        currentPage * rowsPerPage
-      );
-    };
+  const handleAddNewMetodoPago = () => {
+    metodoPagoModal.onOpen(); // Abre el modal para agregar nuevo método de pago
+  };
+
+  // Editar método de pago
+  const handleEditMetodoPago = (metodo: IMetodoPago) => {
+    metodoPagoModal.onOpen(metodo); // Abre el modal con los datos del método de pago a editar
+  };
 
   return (
     <main className="flex justify-center items-start w-full min-h-[calc(100vh-80px)]">
-      <LateralNavbar /> 
-      <div className="w-full flex flex-col p-4 shadow-md rounded-lg">
+      <LateralNavbar />
+      <div className="w-full flex flex-col p-4">
         <div className="text-start w-full mb-4">
-          <h1 className="text-2xl font-bold">
-            Administración de Métodos de Pago
-          </h1>
+          <h1 className="text-2xl font-bold">Administración de Métodos de Pago</h1>
         </div>
+        <div className="flex gap-3 justify-start items-center mb-6">
+          <Button
+            label="Añadir Nuevo Método de Pago"
+            type="button"
+            variant="primary"
+            onClick={handleAddNewMetodoPago} // Llamar a la función para abrir el modal
+          />
+        </div>
+        
+        <MetodoPagoModal />
         <div className="flex flex-col w-full">
-          <h2 className="font-bold text-xl text-gray-700 mb-4">
-            Lista de Métodos de Pago
-          </h2>
+          <h2 className="font-bold text-xl text-gray-700 mb-4">Lista de Métodos de Pago</h2>
           {loading && <p className="text-gray-500">Cargando...</p>}
           {error && <p className="text-red-500">{error}</p>}
-          <div className="overflow-x-auto">
-            {/* tabla */}
-            <Table
-              data={getPaginatedData()}
-              columns={5}
-              rowsPerPage={rowsPerPage}
-              onEdit={handleEditProduct}
-              onDelete={handleDeleteProduct}
-            />
-          </div>
-          {/* Paginación */}
-          <div className="flex justify-between mt-4 w-full">
-            <button
-              className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-            >
-              Anterior
-            </button>
-            <span className="font-semibold">{currentPage} / {totalPages}</span>
-            <button
-              className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-            >
-              Siguiente
-            </button>
-          </div>
+
+          {!loading && !error && metodosPagoData.length > 0 ? (
+            <>
+              <Table
+                data={getPaginatedData()}
+                columns={3} // Número de columnas que deseas mostrar (ajustar a los campos del método de pago)
+                rowsPerPage={rowsPerPage}
+                onEdit={handleEditMetodoPago} // Función para editar
+                onDelete={handleDeleteMetodoPago} // Función para eliminar
+              />
+              <div className="flex justify-between mt-4 w-full">
+                <button
+                  className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  Anterior
+                </button>
+                <span>
+                  Página {currentPage} de {totalPages}
+                </span>
+                <button
+                  className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  Siguiente
+                </button>
+              </div>
+            </>
+          ) : (
+            !loading && <p className="text-gray-500">No hay métodos de pago para mostrar.</p>
+          )}
         </div>
       </div>
     </main>

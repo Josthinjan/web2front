@@ -1,63 +1,97 @@
 "use client";
-import React, { useState } from 'react'
-import Modal from './Modal'
-import { useChatBotModal } from '@/hooks/modals/useChatBotModal';
-import Form from '@/components/shared/Form/Form';
-import FormInput from '@/components/shared/Form/FormInput';
-import Button from '@/components/shared/Button/Button';
+import React, { FormEvent, useState, useEffect } from "react";
+import Modal from "./Modal";
+import { useChatbotModal } from "@/hooks/modals/useChatbotModal"; // Hook para manejar el estado del modal
+import { IChatbot } from "@/interfaces/IChatbot"; // Interfaz del chatbot
+import Form from "@/components/shared/Form/Form";
+import FormInput from "@/components/shared/Form/FormInput";
+import Button from "@/components/shared/Button/Button";
 
-
-const ChatBotModal = () => {
-  const chatBotModal = useChatBotModal();
-  const [formData, setFormData] = useState({
-    question: '',
-    response: ''
+const ChatbotModal = () => {
+  const chatbotModal = useChatbotModal(); // Usamos el hook para el estado del modal
+  const [formData, setFormData] = useState<IChatbot>({
+    question: "",
+    answer: "",
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-  }
+  // Si chatbotToEdit está presente, precargamos los valores del formulario
+  useEffect(() => {
+    if (chatbotModal.chatbotToEdit) {
+      setFormData({
+        question: chatbotModal.chatbotToEdit.question,
+        answer: chatbotModal.chatbotToEdit.answer,
+      });
+    } else {
+      // Limpiar los datos cuando no se está editando
+      setFormData({
+        question: "",
+        answer: "",
+      });
+    }
+  }, [chatbotModal.chatbotToEdit]);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    console.log(formData);
-  }
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
 
-  const bodyModal = (
+    if (formData.question && formData.answer) {
+      // Lógica para guardar o actualizar la pregunta y respuesta del chatbot
+      console.log("Pregunta/Respuesta creada/actualizada:", formData);
+
+      // Si estamos editando, pasamos los datos al backend con un PUT, si no es un POST para crear
+      if (chatbotModal.chatbotToEdit) {
+        // Lógica para actualizar la pregunta y respuesta
+        console.log("Editando pregunta/respuesta:", formData);
+      } else {
+        // Lógica para crear la pregunta y respuesta
+        console.log("Creando nueva pregunta/respuesta:", formData);
+      }
+
+      chatbotModal.onClose(); // Cerrar el modal después de crear o actualizar la pregunta/respuesta
+    } else {
+      console.log("Por favor, completa todos los campos.");
+    }
+  };
+
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = event.target;
+    setFormData((prevData) => ({
+      ...prevData,
+      [name]: value,
+    }));
+  };
+
+  const chatbotModalBody = (
     <Form onSubmit={handleSubmit}>
-      <FormInput 
-        idInput='question'
-        label='Pregunta'
-        name='question'
-        onChange={handleChange}
-        type='text'
+      <FormInput
+        label="Pregunta"
+        name="question"
+        idInput="question"
         value={formData.question}
-      />
-      <FormInput 
-        idInput='response'
-        label='Respuesta'
-        name='response'
         onChange={handleChange}
-        type='text'
-        value={formData.response}
+        type="text"
       />
-      <div className='flex items-center justify-center p-3'>
-        <Button variant='primary' label='Guardar' type='submit' />
+      <FormInput
+        label="Respuesta"
+        name="answer"
+        idInput="answer"
+        value={formData.answer}
+        onChange={handleChange}
+        type="text"
+      />
+      <div className="mt-4">
+        <Button type="submit" variant="primary" label={chatbotModal.chatbotToEdit ? "Actualizar Pregunta" : "Crear Pregunta"} />
       </div>
     </Form>
-  )
-  return(
+  );
+
+  return (
     <Modal
-      title='ChatBot'
-      isOpen={chatBotModal.isOpen}
-      onClose={chatBotModal.onClose}
-      body={bodyModal}
+      isOpen={chatbotModal.isOpen}
+      onClose={chatbotModal.onClose}
+      title={chatbotModal.chatbotToEdit ? "Editar Pregunta" : "Crear Pregunta"}
+      body={chatbotModalBody}
     />
+  );
+};
 
-  )
-}
-
-export default ChatBotModal;
+export default ChatbotModal;

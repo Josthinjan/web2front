@@ -1,14 +1,19 @@
 import { create } from "zustand";
+import { IChatbot } from "@/interfaces/IChatbot"; // Asegúrate de importar correctamente IChatbot
 
-
-type ChatBotModalState = {
+interface ChatbotModalState {
   isOpen: boolean;
-  onOpen: () => void;
+  chatbotToEdit: IChatbot | null; // Pregunta y respuesta del chatbot que se está editando
+  onOpen: (chatbot?: IChatbot) => void; // Puede recibir un chatbot a editar
   onClose: () => void;
-};
+}
 
-export const useChatBotModal = create<ChatBotModalState>((set) => ({
+export const useChatbotModal = create<ChatbotModalState>((set) => ({
   isOpen: false,
-  onOpen: () => set({ isOpen: true }),
-  onClose: () => set({ isOpen: false }),
+  chatbotToEdit: null, // Inicialmente no hay ningún chatbot para editar
+  onOpen: (chatbot?: IChatbot) => set({
+    isOpen: true,
+    chatbotToEdit: chatbot || null, // Si no se pasa un chatbot, limpia el chatbotToEdit
+  }),
+  onClose: () => set({ isOpen: false, chatbotToEdit: null }), // Cerrar y resetear el chatbot en edición
 }));

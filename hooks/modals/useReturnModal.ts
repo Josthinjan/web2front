@@ -1,18 +1,19 @@
-// useReturnsModal.ts
 import { create } from "zustand";
+import { IReturn } from "@/interfaces/IReturn"; // Asegúrate de importar correctamente IReturn
 
-interface ReturnsModalStore {
+interface ReturnModalState {
   isOpen: boolean;
-  retornoToEdit: any | null; // Datos del retorno que se editarán
-  onOpen: (retorno?: any) => void; // Abre el modal con datos de retorno (si hay)
-  onClose: () => void; // Cierra el modal y resetea el retorno
+  returnToEdit: IReturn | null; // Retorno que se está editando
+  onOpen: (retorno?: IReturn) => void; // Puede recibir un retorno a editar
+  onClose: () => void;
 }
 
-const useReturnsModal = create<ReturnsModalStore>((set) => ({
+export const useReturnModal = create<ReturnModalState>((set) => ({
   isOpen: false,
-  retornoToEdit: null,
-  onOpen: (retorno?: any) => set({ isOpen: true, retornoToEdit: retorno || null }),
-  onClose: () => set({ isOpen: false, retornoToEdit: null }),
+  returnToEdit: null, // Inicialmente no hay ningún retorno para editar
+  onOpen: (retorno?: IReturn) => set({
+    isOpen: true,
+    returnToEdit: retorno || null // Si no se pasa un retorno, limpia el returnToEdit
+  }),
+  onClose: () => set({ isOpen: false, returnToEdit: null }), // Cerrar y resetear el retorno en edición
 }));
-
-export default useReturnsModal;

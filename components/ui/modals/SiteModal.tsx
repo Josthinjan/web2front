@@ -1,42 +1,55 @@
 "use client";
 import React, { FormEvent, useState, useEffect } from "react";
 import Modal from "./Modal";
-import useSitesModal from "@/hooks/modals/useSitesModal"; // Usamos el hook de zustand
+import { useSiteModal } from "@/hooks/modals/useSiteModal"; // Hook para manejar el estado del modal
+import { ISite } from "@/interfaces/ISite"; // Interfaz del sitio
 import Form from "@/components/shared/Form/Form";
 import FormInput from "@/components/shared/Form/FormInput";
 import Button from "@/components/shared/Button/Button";
 
 const SiteModal = () => {
-  const siteModal = useSitesModal(); // Usamos el hook de zustand
-  const [formData, setFormData] = useState({
-    siteName: "",
-    siteAddress: "",
-    siteCity: "",
-    siteCountry: "",
+  const siteModal = useSiteModal(); // Usamos el hook para el estado del modal
+  const [formData, setFormData] = useState<ISite>({
+    name: "",
+    address: "",
+    city: "",
+    country: "",
   });
 
-  // Si sitetoedit está presente, pre-cargamos los valores del formulario
+  // Si siteToEdit está presente, precargamos los valores del formulario
   useEffect(() => {
-    console.log("sitetoedit", siteModal.sitetoedit); // Verifica que sitetoedit tenga los datos correctos
-    if (siteModal.sitetoedit) {
+    if (siteModal.siteToEdit) {
       setFormData({
-        siteName: siteModal.sitetoedit.siteName,
-        siteAddress: siteModal.sitetoedit.siteAddress,
-        siteCity: siteModal.sitetoedit.siteCity,
-        siteCountry: siteModal.sitetoedit.siteCountry,
+        name: siteModal.siteToEdit.name,
+        address: siteModal.siteToEdit.address,
+        city: siteModal.siteToEdit.city,
+        country: siteModal.siteToEdit.country,
+      });
+    } else {
+      // Limpiar los datos cuando no se está editando
+      setFormData({
+        name: "",
+        address: "",
+        city: "",
+        country: "",
       });
     }
-  }, [siteModal.sitetoedit]); // Asegúrate de que useEffect se ejecute cuando sitetoedit cambie
+  }, [siteModal.siteToEdit]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (formData.siteName && formData.siteAddress && formData.siteCity && formData.siteCountry) {
-      // Aquí iría la lógica para crear o actualizar el sitio, por ejemplo
+    if (
+      formData.name &&
+      formData.address &&
+      formData.city &&
+      formData.country
+    ) {
+      // Lógica para guardar o actualizar el sitio
       console.log("Sitio creado/actualizado:", formData);
 
       // Si estamos editando, pasamos los datos al backend con un PUT, si no es un POST para crear
-      if (siteModal.sitetoedit) {
+      if (siteModal.siteToEdit) {
         // Lógica para actualizar el sitio
         console.log("Editando sitio:", formData);
       } else {
@@ -61,39 +74,39 @@ const SiteModal = () => {
   const siteModalBody = (
     <Form onSubmit={handleSubmit}>
       <FormInput
-        label="Nombre de la bodega"
-        name="siteName"
-        idInput="siteName"
-        value={formData.siteName}
+        label="Nombre del Sitio"
+        name="name"
+        idInput="name"
+        value={formData.name}
         onChange={handleChange}
         type="text"
       />
       <FormInput
         label="Dirección"
-        name="siteAddress"
-        idInput="siteAddress"
-        value={formData.siteAddress}
+        name="address"
+        idInput="address"
+        value={formData.address}
         onChange={handleChange}
         type="text"
       />
       <FormInput
         label="Ciudad"
-        name="siteCity"
-        idInput="siteCity"
-        value={formData.siteCity}
+        name="city"
+        idInput="city"
+        value={formData.city}
         onChange={handleChange}
         type="text"
       />
       <FormInput
         label="País"
-        name="siteCountry"
-        idInput="siteCountry"
-        value={formData.siteCountry}
+        name="country"
+        idInput="country"
+        value={formData.country}
         onChange={handleChange}
         type="text"
       />
-      <div className="w-full py-6">
-        <Button type="submit" variant="primary" label={siteModal.sitetoedit ? "Actualizar Bodega" : "Crear Bodega"} />
+      <div>
+        <Button type="submit" variant="primary" label={siteModal.siteToEdit ? "Actualizar Sitio" : "Crear Sitio"} />
       </div>
     </Form>
   );
@@ -102,7 +115,7 @@ const SiteModal = () => {
     <Modal
       isOpen={siteModal.isOpen}
       onClose={siteModal.onClose}
-      title={siteModal.sitetoedit ? "Editar Bodega" : "Crear Nueva Bodega"}
+      title={siteModal.siteToEdit ? "Editar Sitio" : "Crear Sitio"}
       body={siteModalBody}
     />
   );

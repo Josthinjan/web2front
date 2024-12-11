@@ -5,7 +5,7 @@ interface TableProps {
   columns: number; // Número de columnas a mostrar
   rowsPerPage: number; // Número de filas por página
   onEdit: (row: any) => void; // Función para editar un usuario
-  onDelete: (id: number) => void; // Función para eliminar un usuario
+  onDelete: (id: string | number) => void; // Acepta tanto 'string' como 'number'
 }
 
 const Table: React.FC<TableProps> = ({
@@ -49,15 +49,7 @@ const Table: React.FC<TableProps> = ({
             <tr key={index}>
               {Object.entries(row).slice(0, columns).map(([key, value], colIndex) => (
                 <td key={colIndex} className="border p-2 break-words whitespace-normal">
-                  {/* Mostrar el color como fondo en la columna de color */}
-                  {colIndex === 2 ? (  // Asumimos que la columna de color es la 3ra columna
-                    <div
-                      className="w-12 h-12"
-                      style={{ backgroundColor: value }}
-                    ></div>
-                  ) : (
-                    value
-                  )}
+                  {value}
                 </td>
               ))}
               <td className="border p-2 flex justify-center space-x-2">
@@ -69,7 +61,7 @@ const Table: React.FC<TableProps> = ({
                 </button>
                 <button
                   className="bg-red-500 text-white px-4 py-2 rounded"
-                  onClick={() => onDelete(row.id)}
+                  onClick={() => onDelete(row.codigo_lote)} // Llamar con el parámetro adecuado
                 >
                   Eliminar
                 </button>
@@ -78,8 +70,6 @@ const Table: React.FC<TableProps> = ({
           ))}
         </tbody>
       </table>
-
-      
     </div>
   );
 };

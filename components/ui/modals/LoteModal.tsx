@@ -1,136 +1,152 @@
 "use client";
-import React, { useState } from 'react'
-import Modal from './Modal'
-import { useLoteModal } from '@/hooks/modals/useLoteModal';
+import React, { FormEvent, useState, useEffect } from 'react';
+import Modal from './Modal';
+import { useLoteModal } from '@/hooks/modals/useLoteModal'; // Hook para manejar el estado del modal
+import { ILote } from '@/interfaces/ILote'; // Interfaz del lote
 import Form from '@/components/shared/Form/Form';
-import { ILote } from '@/interfaces/ILote';
 import FormInput from '@/components/shared/Form/FormInput';
-import FormCheckbox from '@/components/shared/Form/FormCheckbox';
-import Button from '@/components/shared/Button/Button';
 import FormSelectInput from '@/components/shared/Form/selectElement/FormSelectInput';
-import { useFetch } from '@/hooks/useFetch';
-import { config } from '@/config/config';
-import Label from '../label/Label';
+import Button from '@/components/shared/Button/Button';
 
 const LoteModal = () => {
-  const loteModal = useLoteModal();
+  const loteModal = useLoteModal(); // Usamos el hook de zustand para el estado del modal
   const [formData, setFormData] = useState<ILote>({
-    loteCode: '',
-    expirationDate: '',
-    isExpirable: false,
-    manufactoringDate: '',
     productId: 0,
     providerId: 0,
-    quantity: 0
+    loteCode: '',
+    manufactoringDate: '',
+    expirationDate: '',
+    quantity: 0,
+    isExpirable: false, // Estado por defecto
   });
 
-  const {data: productsData, loading: productsLoading, error: productsError } = useFetch({
-    url: `${config.API_BASE_URL}/products`
-  });
+  // Si loteToEdit está presente, precargamos los valores del formulario
+  useEffect(() => {
+    if (loteModal.loteToEdit) {
+      setFormData({
+        productId: loteModal.loteToEdit.productId,
+        providerId: loteModal.loteToEdit.providerId,
+        loteCode: loteModal.loteToEdit.loteCode,
+        manufactoringDate: loteModal.loteToEdit.manufactoringDate,
+        expirationDate: loteModal.loteToEdit.expirationDate,
+        quantity: loteModal.loteToEdit.quantity,
+        isExpirable: loteModal.loteToEdit.isExpirable,
+      });
+    }
+  }, [loteModal.loteToEdit]);
 
-  const {data: providersData, loading: providersLoading, error: providersError } = useFetch({
-    url: `${config.API_BASE_URL}/providers`
-  });
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    console.log(formData);
+    if (
+      formData.productId > 0 &&
+      formData.providerId > 0 &&
+      formData.loteCode &&
+      formData.manufactoringDate &&
+      formData.expirationDate &&
+      formData.quantity > 0
+    ) {
+      // Lógica para guardar o actualizar el lote
+      console.log("Lote creado/actualizado:", formData);
+
+      // Si estamos editando, pasamos los datos al backend con un PUT, si no es un POST para crear
+      if (loteModal.loteToEdit) {
+        // Lógica para actualizar el lote
+        console.log('Editando lote:', formData);
+      } else {
+        // Lógica para crear el lote
+        console.log('Creando nuevo lote:', formData);
+      }
+
+      loteModal.onClose(); // Cerrar el modal después de crear o actualizar el lote
+    } else {
+      console.log("Por favor, completa todos los campos.");
+    }
   };
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value, type } = e.target as | HTMLInputElement | HTMLSelectElement;
-    const checked =
-      type === "checkbox" ? (e.target as HTMLInputElement).checked : false;
-    setFormData({
-      ...formData,
-      [name]: type === "checkbox" ? checked : value,
-    });
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = event.target;
+    setFormData((prevData) => ({
+      ...prevData,
+      [name]: value,
+    }));
   };
 
-  const LoteModalBody = (
+  const loteModalBody = (
     <Form onSubmit={handleSubmit}>
-      {productsLoading && <Label text='Cargando productos' type='info'/>}
-      {productsError && <Label text='Error al cargar productos' type='error'/>}
-      {providersLoading && <Label text='Cargando proveedores' type='info'/>}
-      {providersError && <Label text='Error al cargar proveedores' type='error'/>}
-      <FormInput 
-        idInput='loteCode'
-        label='Codigo de lote'
-        name='loteCode'
-        onChange={handleChange}
-        type='text'
+      <FormInput
+        label="Código de Lote"
+        name="loteCode"
+        idInput="loteCode"
         value={formData.loteCode}
-      />
-      <FormSelectInput 
-        selectId='productId'
-        label='Producto'
-        selectName='productId'
         onChange={handleChange}
-        options={[
-          { value: 0, name: 'Selecciona un producto' }
-        ]}
-        value={formData.productId.toString()}
+        type="text"
+      />
+      <FormInput
+        label="ID de Producto"
+        name="productId"
+        idInput="productId"
+        value={formData.productId}
+        onChange={handleChange}
+        type="number"
+      />
+      <FormInput
+        label="ID de Proveedor"
+        name="providerId"
+        idInput="providerId"
+        value={formData.providerId}
+        onChange={handleChange}
+        type="number"
+      />
+      <FormInput
+        label="Fecha de Fabricación"
+        name="manufactoringDate"
+        idInput="manufactoringDate"
+        value={formData.manufactoringDate}
+        onChange={handleChange}
+        type="date"
+      />
+      <FormInput
+        label="Fecha de Expiración"
+        name="expirationDate"
+        idInput="expirationDate"
+        value={formData.expirationDate}
+        onChange={handleChange}
+        type="date"
+      />
+      <FormInput
+        label="Cantidad"
+        name="quantity"
+        idInput="quantity"
+        value={formData.quantity}
+        onChange={handleChange}
+        type="number"
       />
       <FormSelectInput
-        selectId='providerId'
-        label='Proveedor'
-        selectName='providerId'
+        label="¿Es Expirable?"
+        selectName="isExpirable"
+        selectId="isExpirable"
+        value={formData.isExpirable ? 'true' : 'false'}
         onChange={handleChange}
         options={[
-          { value: 0, name: 'Selecciona un proveedor' }
+          { value: 'true', name: 'Sí' },
+          { value: 'false', name: 'No' },
         ]}
-        value={formData.providerId.toString()}
-        />
-      <FormInput 
-        idInput='manufactoringDate'
-        label='Fecha de fabricacion'
-        name='manufactoringDate'
-        onChange={handleChange}
-        type='date'
-        value={formData.manufactoringDate}
       />
-      <FormInput 
-        idInput='quantity'
-        label='Cantidad'
-        name='quantity'
-        onChange={handleChange}
-        type='number'
-        value={formData.quantity}
-      />
-      <FormCheckbox 
-        checked={formData.isExpirable}
-        label='Es expirable'
-        onChange={handleChange}
-        idCheckbox='isExpirable'
-        key={formData.isExpirable.toString()}
-        nameCheckbox='isExpirable'
-      />
-      {formData.isExpirable && (
-        <FormInput 
-          idInput='expirationDate'
-          label='Fecha de expiracion'
-          name='expirationDate'
-          onChange={handleChange}
-          type='date'
-          value={formData.expirationDate}
-        />
-      )}
-      <div className='mt-3'>
-        <Button variant='primary' label='Crear lote' type='submit'/>
+      <div>
+        <Button type="submit" variant="primary" label={loteModal.loteToEdit ? "Actualizar Lote" : "Crear Lote"} />
       </div>
     </Form>
   );
 
   return (
-    <Modal 
-      title='Crear lote'  
+    <Modal
       isOpen={loteModal.isOpen}
       onClose={loteModal.onClose}
-      body={LoteModalBody}
+      title={loteModal.loteToEdit ? "Editar Lote" : "Crear Lote"}
+      body={loteModalBody}
     />
   );
-}
+};
 
-export default LoteModal
+export default LoteModal;

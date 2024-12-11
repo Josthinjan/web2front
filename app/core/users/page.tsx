@@ -52,7 +52,7 @@ const Page = () => {
   };
 
   // Función para eliminar usuario
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: number|string) => {
     const updatedUsers = users.filter((user) => user.id !== id);
     setUsers(updatedUsers);
   };

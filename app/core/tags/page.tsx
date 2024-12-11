@@ -95,7 +95,7 @@ const EtiquetasPage = () => {
   };
 
   // Eliminar etiqueta
-  const handleDeleteTag = (id: number) => {
+  const handleDeleteTag = (id: number | string) => {
     Swal.fire({
       title: '¿Estás seguro?',
       text: "¡Esta acción no se puede deshacer!",

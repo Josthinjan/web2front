@@ -1,51 +1,15 @@
 "use client";
 import Button from "@/components/shared/Button/Button";
 import LateralNavbar from "@/components/ui/lateralNavbar/LateralNavbar";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
-import { config } from "@/config/config";
-import { getTokenFromCookie } from "@/config/config";
-import Label from "@/components/ui/label/Label";
-import Table from "@/components/shared/Table/Table"; // Tabla para mostrar los retornos
+import Table from "@/components/shared/Table/Table"; // Importa el componente Table
+import ReturnModal from "@/components/ui/modals/ReturnModal"; // Modal para los retornos
+import { useReturnModal } from "@/hooks/modals/useReturnModal"; // Hook para manejar el modal
+import { IReturn } from "@/interfaces/IReturn"; // Interfaz de retorno
 
-// Datos de ejemplo
-const data = [
-  {
-    fechaRetorno: "2024-11-25",
-    codigoLote: "A123456",
-    nombreUsuario: "Juan Pérez",
-    nombreProducto: "Laptop Dell XPS 13",
-    cantidad: 1,
-    motivoRetorno: "Defecto en la pantalla",
-    estado: "Procesado",
-  },
-  {
-    fechaRetorno: "2024-11-26",
-    codigoLote: "B654321",
-    nombreUsuario: "María López",
-    nombreProducto: "Smartphone Samsung Galaxy S23",
-    cantidad: 2,
-    motivoRetorno: "Pantalla rota",
-    estado: "Pendiente",
-  },
-  {
-    fechaRetorno: "2024-11-27",
-    codigoLote: "C112233",
-    nombreUsuario: "Carlos Martínez",
-    nombreProducto: "Auriculares Bose QC45",
-    cantidad: 1,
-    motivoRetorno: "Sonido defectuoso",
-    estado: "En revisión",
-  },
-  {
-    fechaRetorno: "2024-11-28",
-    codigoLote: "D445566",
-    nombreUsuario: "Ana García",
-    nombreProducto: "Monitor LG 27UL850-W",
-    cantidad: 1,
-    motivoRetorno: "No enciende",
-    estado: "Rechazado",
-  },
+// Datos de ejemplo de retornos
+const retornos: IReturn[] = [
   {
     fechaRetorno: "2024-11-29",
     codigoLote: "E778899",
@@ -57,47 +21,44 @@ const data = [
   },
   {
     fechaRetorno: "2024-11-30",
-    codigoLote: "F998877",
-    nombreUsuario: "Luisa Fernández",
-    nombreProducto: "Mouse inalámbrico Razer Viper",
+    codigoLote: "E779900",
+    nombreUsuario: "María López",
+    nombreProducto: "Mouse inalámbrico Razer",
     cantidad: 1,
-    motivoRetorno: "Fallo de conexión",
+    motivoRetorno: "Botones defectuosos",
     estado: "Pendiente",
-  }
+  },
+  {
+    fechaRetorno: "2024-12-01",
+    codigoLote: "E780011",
+    nombreUsuario: "Carlos Pérez",
+    nombreProducto: "Auriculares Sony WH-1000XM4",
+    cantidad: 2,
+    motivoRetorno: "Sonido distorsionado",
+    estado: "Procesado",
+  },
 ];
 
 const RetornosPage = () => {
-  const [retornos, setRetornos] = useState<any[]>(data);
+  const returnModal = useReturnModal();
+  const [retornosData, setRetornosData] = useState<IReturn[]>(retornos);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(1);
+  const rowsPerPage = 5;
 
-  // Obtener datos de la paginación
+  // Calcular el número total de páginas
+  useEffect(() => {
+    const totalPagesCalculated = Math.ceil(retornosData.length / rowsPerPage);
+    setTotalPages(totalPagesCalculated);
+  }, [retornosData]);
+
+  // Obtener datos de la página actual para la paginación
   const getPaginatedData = () => {
-    const startIndex = (currentPage - 1) * 5;
-    const endIndex = startIndex + 5;
-    return retornos.slice(startIndex, endIndex);
-  };
-
-  // Enviar datos de retorno al backend (función de ejemplo)
-  const handleSubmitReturn = async (returnData: any) => {
-    const token = getTokenFromCookie();
-    const response = await fetch(`${config.API_BASE_URL}/retornos`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
-      },
-      body: JSON.stringify(returnData),
-    });
-
-    if (!response.ok) {
-      throw new Error("Error al enviar los datos del retorno");
-    }
-
-    const data = await response.json();
-    return data;
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    const endIndex = startIndex + rowsPerPage;
+    return retornosData.slice(startIndex, endIndex);
   };
 
   // Cambiar de página en la paginación
@@ -108,19 +69,18 @@ const RetornosPage = () => {
   };
 
   // Eliminar retorno
-  const handleDeleteReturn = (id: number) => {
+  const handleDeleteReturn = (codigoLote: string | number) => {
     Swal.fire({
-      title: "¿Estás seguro?",
+      title: '¿Estás seguro?',
       text: "¡Esta acción no se puede deshacer!",
-      icon: "warning",
+      icon: 'warning',
       showCancelButton: true,
-      confirmButtonText: "Sí, eliminar",
-      cancelButtonText: "Cancelar",
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          // Aquí llamas al servicio para eliminar el retorno
-          setRetornos(retornos.filter((retorno) => retorno.codigoLote !== id)); // Elimina de la lista local
+          setRetornosData(retornosData.filter(retorno => retorno.codigoLote !== codigoLote));
           Swal.fire("Eliminado", "Retorno eliminado correctamente", "success");
         } catch (error) {
           Swal.fire("Error", "Ocurrió un problema al eliminar el retorno", "error");
@@ -129,10 +89,20 @@ const RetornosPage = () => {
     });
   };
 
+  // Agregar nuevo retorno
+  const handleAddNewReturn = () => {
+    returnModal.onOpen(); // Abre el modal al añadir un nuevo retorno
+  };
+
+  // Editar retorno
+  const handleEditReturn = (retorno: IReturn) => {
+    returnModal.onOpen(retorno); // Abre el modal con los datos del retorno a editar
+  };
+
   return (
     <main className="flex justify-center items-start w-full min-h-[calc(100vh-80px)]">
       <LateralNavbar />
-      <div className="w-full flex flex-col p-4 shadow-md rounded-lg">
+      <div className="w-full flex flex-col p-4">
         <div className="text-start w-full mb-4">
           <h1 className="text-2xl font-bold">Administración de Retornos</h1>
         </div>
@@ -141,24 +111,24 @@ const RetornosPage = () => {
             label="Añadir Nuevo Retorno"
             type="button"
             variant="primary"
-            // Aquí iría la lógica para abrir el modal de nuevo retorno
+            onClick={handleAddNewReturn} // Llamar a la función para abrir el modal
           />
         </div>
+
+        <ReturnModal />
         <div className="flex flex-col w-full">
           <h2 className="font-bold text-xl text-gray-700 mb-4">Lista de Retornos</h2>
-          {loading && <Label type="info" text="Cargando retornos" />}
-          {error && <Label type="error" text={error} />}
-          
-          {!loading && !error && retornos.length > 0 ? (
+          {loading && <p className="text-gray-500">Cargando...</p>}
+          {error && <p className="text-red-500">{error}</p>}
+
+          {!loading && !error && retornosData.length > 0 ? (
             <>
               <Table
                 data={getPaginatedData()}
-                columns={7}
-                rowsPerPage={5}
-                onEdit={(id: number) => {
-                  // Lógica para editar el retorno
-                }} // Acción para editar
-                onDelete={handleDeleteReturn} // Acción para eliminar
+                columns={7} // Número de columnas que deseas mostrar (ajustar a los campos de retorno)
+                rowsPerPage={rowsPerPage}
+                onEdit={handleEditReturn} // Función para editar
+                onDelete={handleDeleteReturn} // Función para eliminar
               />
               <div className="flex justify-between mt-4 w-full">
                 <button
@@ -181,7 +151,7 @@ const RetornosPage = () => {
               </div>
             </>
           ) : (
-            !loading && <Label type="info" text="No hay retornos para mostrar." />
+            !loading && <p className="text-gray-500">No hay retornos para mostrar.</p>
           )}
         </div>
       </div>

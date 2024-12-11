@@ -1,107 +1,40 @@
-'use client';
+"use client";
 import Button from "@/components/shared/Button/Button";
 import LateralNavbar from "@/components/ui/lateralNavbar/LateralNavbar";
 import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
-import { config } from "@/config/config";
-import Label from "@/components/ui/label/Label";
-import { useProviderModal } from "@/hooks/modals/useProviderModal";
-import ProviderModal from "@/components/ui/modals/ProviderModal";
-import Table from "@/components/shared/Table/Table";
+import Table from "@/components/shared/Table/Table"; // Importa el componente Table
+import ProviderModal from "@/components/ui/modals/ProviderModal"; // Importa el modal de proveedores
+import { useProviderModal } from "@/hooks/modals/useProviderModal"; // Importa el hook para manejar el modal
+import { IProvider } from "@/interfaces/IProvider"; // Importa la interfaz de proveedor
 
-// Datos quemados de proveedores
-const providers = [
-  { 
-    id: 1, 
-    name: 'Proveedor Tecnología', 
-    email: 'tech@example.com', 
-    phone: '555-1234', 
-    address: 'Av. Tecnológica 123', 
-    city: 'Ciudad Tech', 
-    status: 'Activo' 
-  },
-  { 
-    id: 2, 
-    name: 'Proveedor Alimentos', 
-    email: 'food@example.com', 
-    phone: '555-5678', 
-    address: 'Calle Gastronómica 456', 
-    city: 'Ciudad Gourmet', 
-    status: 'Inactivo' 
-  },
-  { 
-    id: 3, 
-    name: 'Proveedor Diseño', 
-    email: 'design@example.com', 
-    phone: '555-9012', 
-    address: 'Paseo Creativo 789', 
-    city: 'Ciudad Artística', 
-    status: 'Activo' 
-  },
-  { 
-    id: 4, 
-    name: 'Proveedor Logística', 
-    email: 'logistics@example.com', 
-    phone: '555-3456', 
-    address: 'Ruta Comercial 321', 
-    city: 'Ciudad Conexión', 
-    status: 'Activo' 
-  },
-  { 
-    id: 5, 
-    name: 'Proveedor Consultoría', 
-    email: 'consulting@example.com', 
-    phone: '555-7890', 
-    address: 'Torre Empresarial 654', 
-    city: 'Ciudad Negocios', 
-    status: 'Inactivo' 
-  }
+// Datos de ejemplo de proveedores
+const proveedores: IProvider[] = [
+  { id: 1, name: "Proveedor A", email: "proveedorA@mail.com", phone: "123456789", address: "Calle A", city: "Ciudad A", active: true },
+  { id: 2, name: "Proveedor B", email: "proveedorB@mail.com", phone: "987654321", address: "Calle B", city: "Ciudad B", active: false },
+  { id: 3, name: "Proveedor C", email: "proveedorC@mail.com", phone: "123123123", address: "Calle C", city: "Ciudad C", active: true },
 ];
 
-const ProvidersPage = () => {
+const ProveedoresPage = () => {
   const providerModal = useProviderModal();
-  const [proveedores, setProveedores] = useState<any[]>(providers);
+  const [proveedoresData, setProveedoresData] = useState<IProvider[]>(proveedores);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [totalPages, setTotalPages] = useState<number>(1); // Inicializamos con 1
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const rowsPerPage = 5;
 
-  const rowsPerPage = 5; // Establece la cantidad de filas por página
-
-  // Calcular el número total de páginas basado en la cantidad de proveedores
+  // Calcular el número total de páginas
   useEffect(() => {
-    const totalProviders = proveedores.length;
-    const pages = Math.ceil(totalProviders / rowsPerPage);
-    setTotalPages(pages);
-  }, [proveedores]);
+    const totalPagesCalculated = Math.ceil(proveedoresData.length / rowsPerPage);
+    setTotalPages(totalPagesCalculated);
+  }, [proveedoresData]);
 
-  // Obtener datos paginados
+  // Obtener datos de la página actual para la paginación
   const getPaginatedData = () => {
     const startIndex = (currentPage - 1) * rowsPerPage;
     const endIndex = startIndex + rowsPerPage;
-    return proveedores.slice(startIndex, endIndex);
-  };
-
-  // Mostrar formulario de nuevo proveedor
-  const handleAddNewProvider = () => {
-    providerModal.onOpen();
-  };
-
-  // Enviar datos del proveedor al backend (placeholder)
-  const handleSubmitProveedor = async (proveedorData: any) => {
-    try {
-      // Lógica de backend simulada
-      const nuevoProv = {
-        ...proveedorData,
-        id: proveedores.length + 1
-      };
-      
-      setProveedores([...proveedores, nuevoProv]);
-      Swal.fire("Éxito", "Proveedor creado correctamente", "success");
-      providerModal.onClose();
-    } catch (error) {
-      Swal.fire("Error", "Ocurrió un problema al crear el proveedor", "error");
-    }
+    return proveedoresData.slice(startIndex, endIndex);
   };
 
   // Cambiar de página en la paginación
@@ -112,7 +45,7 @@ const ProvidersPage = () => {
   };
 
   // Eliminar proveedor
-  const handleDeleteProvider = (id: number) => {
+  const handleDeleteProvider = (id: number| string) => {
     Swal.fire({
       title: '¿Estás seguro?',
       text: "¡Esta acción no se puede deshacer!",
@@ -123,7 +56,7 @@ const ProvidersPage = () => {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          setProveedores(proveedores.filter(provider => provider.id !== id));
+          setProveedoresData(proveedoresData.filter(provider => provider.id !== id));
           Swal.fire("Eliminado", "Proveedor eliminado correctamente", "success");
         } catch (error) {
           Swal.fire("Error", "Ocurrió un problema al eliminar el proveedor", "error");
@@ -132,10 +65,14 @@ const ProvidersPage = () => {
     });
   };
 
+  // Agregar nuevo proveedor
+  const handleAddNewProvider = () => {
+    providerModal.onOpen(); // Abre el modal al añadir nuevo proveedor
+  };
+
   // Editar proveedor
-  const handleEditProvider = (provider: any) => {
-    providerModal.onOpen();
-    // En tu hook de modal, necesitarás agregar soporte para pasar el proveedor a editar
+  const handleEditProvider = (provider: IProvider) => {
+    providerModal.onOpen(provider); // Abre el modal con los datos del proveedor a editar
   };
 
   return (
@@ -150,23 +87,24 @@ const ProvidersPage = () => {
             label="Añadir Nuevo Proveedor"
             type="button"
             variant="primary"
-            onClick={handleAddNewProvider}
+            onClick={handleAddNewProvider} // Llamar a la función para abrir el modal
           />
         </div>
+        
         <ProviderModal />
         <div className="flex flex-col w-full">
-          <h2 className="font-bold text-xl text-gray-700 mb-4">Lista de Proveedores Disponibles</h2>
-          {loading && <Label type="info" text="Cargando proveedores" />}
-          {error && <Label type="error" text={error} />}
-          
-          {!loading && !error && proveedores.length > 0 ? (
+          <h2 className="font-bold text-xl text-gray-700 mb-4">Lista de Proveedores</h2>
+          {loading && <p className="text-gray-500">Cargando...</p>}
+          {error && <p className="text-red-500">{error}</p>}
+
+          {!loading && !error && proveedoresData.length > 0 ? (
             <>
               <Table
                 data={getPaginatedData()}
-                columns={6}
-                rowsPerPage={5}
-                onEdit={handleEditProvider}
-                onDelete={handleDeleteProvider}
+                columns={6} // Número de columnas que deseas mostrar (ajustar a los campos de proveedor)
+                rowsPerPage={rowsPerPage}
+                onEdit={handleEditProvider} // Función para editar
+                onDelete={handleDeleteProvider} // Función para eliminar
               />
               <div className="flex justify-between mt-4 w-full">
                 <button
@@ -189,7 +127,7 @@ const ProvidersPage = () => {
               </div>
             </>
           ) : (
-            !loading && <Label type="info" text="No hay proveedores para mostrar." />
+            !loading && <p className="text-gray-500">No hay proveedores para mostrar.</p>
           )}
         </div>
       </div>
@@ -197,4 +135,4 @@ const ProvidersPage = () => {
   );
 };
 
-export default ProvidersPage;
+export default ProveedoresPage;

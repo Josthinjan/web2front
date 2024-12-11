@@ -1,176 +1,137 @@
-import React, { ChangeEvent, FormEvent, useEffect, useState } from "react";
+"use client";
+import React, { FormEvent, useState, useEffect } from "react";
 import Modal from "./Modal";
-import { useProviderModal } from "@/hooks/modals/useProviderModal";
-import { IProvider } from "@/interfaces/IProvider";
+import { useProviderModal } from "@/hooks/modals/useProviderModal"; // Hook para manejar el estado del modal
+import { IProvider } from "@/interfaces/IProvider"; // Interfaz del proveedor
 import Form from "@/components/shared/Form/Form";
 import FormInput from "@/components/shared/Form/FormInput";
-import FormCheckbox from "@/components/shared/Form/FormCheckbox";
+import FormSelectInput from "@/components/shared/Form/selectElement/FormSelectInput";
 import Button from "@/components/shared/Button/Button";
-import { validateEmail, validateName } from '@/utils/FormValidation';
 
 const ProviderModal = () => {
-
-  const providerModal = useProviderModal();
+  const providerModal = useProviderModal(); // Usamos el hook para el estado del modal
   const [formData, setFormData] = useState<IProvider>({
     name: "",
     email: "",
-    city: "",
     phone: "",
-    active: true,
     address: "",
+    city: "",
+    active: true, // Estado por defecto
   });
-  
-  const [error, setError] = useState<{
-    name?: string;
-    email?: string;
-    city?: string;
-    phone?: string;
-    address?: string;
-  }>({});
 
-  // useEffect para pre-cargar los datos cuando se edita un proveedor
+  // Si providerToEdit está presente, precargamos los valores del formulario
   useEffect(() => {
     if (providerModal.providerToEdit) {
       setFormData({
         name: providerModal.providerToEdit.name,
         email: providerModal.providerToEdit.email,
-        city: providerModal.providerToEdit.city,
         phone: providerModal.providerToEdit.phone,
-        active: providerModal.providerToEdit.status === 'Activo',
         address: providerModal.providerToEdit.address,
+        city: providerModal.providerToEdit.city,
+        active: providerModal.providerToEdit.active,
       });
     } else {
-      // Resetea el formulario si no hay proveedor para editar
+      // Limpiar los datos cuando no se está editando
       setFormData({
         name: "",
         email: "",
-        city: "",
         phone: "",
-        active: true,
         address: "",
+        city: "",
+        active: true,
       });
     }
   }, [providerModal.providerToEdit]);
 
-  const validateForm = () => {
-    const newErrors: {
-      name?: string;
-      email?: string;
-      city?: string;
-      phone?: string;
-      address?: string;
-    } = {};
-    if (formData.name === "") {
-      newErrors.name = "El nombre es requerido";
-    } else if (!validateName(formData.name)) {
-      newErrors.name = "El nombre no puede contener numeros";
-    }
-    if (formData.email === "") {
-      newErrors.email = "El correo es requerido";
-    } else if (!validateEmail(formData.email)) {
-      newErrors.email = "El correo no es valido";
-    }
-    if (formData.city === "") {
-      newErrors.city = "La ciudad es requerida";
-    }
-    if (formData.phone === "") {
-      newErrors.phone = "El telefono es requerido";
-    }
-    if (formData.address === "") {
-      newErrors.address = "La dirección es requerida";
-    }
-    setError(newErrors);
-    if (Object.keys(newErrors).length > 0) {
-      return false;
-    }
-    return true;
-  }
-
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!validateForm()) {
-      return;
-    }
 
-    // Si hay un proveedor para editar, maneja la edición
-    if (providerModal.providerToEdit) {
-      // Lógica de actualización
-      console.log('Actualizando proveedor', formData);
-      // Aquí puedes hacer una llamada a la API para actualizar el proveedor
+    if (
+      formData.name &&
+      formData.email &&
+      formData.phone &&
+      formData.address &&
+      formData.city
+    ) {
+      // Lógica para guardar o actualizar el proveedor
+      console.log("Proveedor creado/actualizado:", formData);
+
+      // Si estamos editando, pasamos los datos al backend con un PUT, si no es un POST para crear
+      if (providerModal.providerToEdit) {
+        // Lógica para actualizar el proveedor
+        console.log("Editando proveedor:", formData);
+      } else {
+        // Lógica para crear el proveedor
+        console.log("Creando nuevo proveedor:", formData);
+      }
+
+      providerModal.onClose(); // Cerrar el modal después de crear o actualizar el proveedor
     } else {
-      // Lógica de creación
-      console.log('Creando proveedor', formData);
-      // Aquí puedes hacer una llamada a la API para crear un nuevo proveedor
+      console.log("Por favor, completa todos los campos.");
     }
-  }
+  };
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value, type } = e.target as | HTMLInputElement | HTMLSelectElement;
-    const checked =
-      type === "checkbox" ? (e.target as HTMLInputElement).checked : false;
-    setFormData({
-      ...formData,
-      [name]: type === "checkbox" ? checked : value,
-    });
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = event.target;
+    setFormData((prevData) => ({
+      ...prevData,
+      [name]: value,
+    }));
   };
 
   const providerModalBody = (
     <Form onSubmit={handleSubmit}>
-      <FormInput 
-        label="Nombre"
+      <FormInput
+        label="Nombre del Proveedor"
         name="name"
+        idInput="name"
         value={formData.name}
         onChange={handleChange}
-        idInput="name"
         type="text"
-        error={error.name}
       />
-      <FormInput 
-        label="Email"
+      <FormInput
+        label="Correo Electrónico"
         name="email"
+        idInput="email"
         value={formData.email}
         onChange={handleChange}
-        idInput="email"
         type="email"
-        error={error.email}
       />
-      <FormInput 
-        label="Ciudad"
-        name="city"
-        value={formData.city}
-        onChange={handleChange}
-        idInput="city"
-        type="text"
-        error={error.city}
-      />
-      <FormInput 
+      <FormInput
         label="Teléfono"
         name="phone"
+        idInput="phone"
         value={formData.phone}
         onChange={handleChange}
-        idInput="phone"
         type="text"
-        error={error.phone}
       />
-      <FormInput 
+      <FormInput
         label="Dirección"
         name="address"
+        idInput="address"
         value={formData.address}
         onChange={handleChange}
-        idInput="address"
         type="text"
-        error={error.address}
       />
-      <FormCheckbox
-        label="Activo"
-        nameCheckbox="active"
-        checked={formData.active}
+      <FormInput
+        label="Ciudad"
+        name="city"
+        idInput="city"
+        value={formData.city}
         onChange={handleChange}
-        idCheckbox="active"
+        type="text"
       />
-      
+      <FormSelectInput
+        label="¿Está Activo?"
+        selectName="active"
+        selectId="active"
+        value={formData.active ? "true" : "false"}
+        onChange={handleChange}
+        options={[
+          { value: "true", name: "Sí" },
+          { value: "false", name: "No" },
+        ]}
+      />
       <div>
         <Button type="submit" variant="primary" label={providerModal.providerToEdit ? "Actualizar Proveedor" : "Crear Proveedor"} />
       </div>
@@ -178,12 +139,12 @@ const ProviderModal = () => {
   );
 
   return (
-    <Modal 
-      title={providerModal.providerToEdit ? "Editar Proveedor" : "Crear Proveedor"}
+    <Modal
       isOpen={providerModal.isOpen}
       onClose={providerModal.onClose}
+      title={providerModal.providerToEdit ? "Editar Proveedor" : "Crear Proveedor"}
       body={providerModalBody}
-    /> 
+    />
   );
 };
 
