@@ -16,9 +16,11 @@ interface UseFetchReturn<T> {
 
 export function useFetch<T = any>({
   url,
+  method = "GET",  // Método por defecto es "GET"
+  body,
   skipToken = false,
   ...fetchConfig
-}: { url: string } & FetchConfig): UseFetchReturn<T> {
+}: { url: string; method?: "GET" | "POST" | "PUT"; body?: BodyInit } & FetchConfig): UseFetchReturn<T> {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -61,8 +63,10 @@ export function useFetch<T = any>({
 
       // Perform fetch
       const response = await fetch(apiUrl, {
-        ...fetchConfig,
+        method,
         headers,
+        body,
+        ...fetchConfig,
       });
 
       if (!response.ok) {
@@ -79,8 +83,10 @@ export function useFetch<T = any>({
   };
 
   useEffect(() => {
-    fetchData();
-  }, [url]);
+    if (method === "GET") {
+      fetchData();
+    }
+  }, [url, method, body]);
 
   return {
     data,

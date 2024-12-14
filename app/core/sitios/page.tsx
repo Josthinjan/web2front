@@ -16,7 +16,9 @@ const SitesPage = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(1);
   const [showCreateSiteForm, setShowCreateSiteForm] = useState<boolean>(false);
+  const [shouldRefetch, setShouldRefetch] = useState<boolean>(false); // Estado para controlar la recarga
 
+  // Usamos useFetch para obtener los datos de las bodegas
   const { data: responseData, error, loading, refetch } = useFetch({ url: "/sitios" });
 
   const sites = responseData?.data || [];
@@ -29,9 +31,12 @@ const SitesPage = () => {
     return sites.slice(startIndex, endIndex);
   };
 
-  const handleAddNewSite = () => {
+  const handleAddNewSite = async () => {
     setShowCreateSiteForm(true);
     siteModal.onOpen();
+
+    // Marcar que necesitamos refetch de los datos
+    setShouldRefetch(true);
   };
 
   const handleDeleteSite = async (id: number | string) => {
@@ -74,7 +79,9 @@ const SitesPage = () => {
           }
 
           Swal.fire("Eliminado", "Sitio eliminado correctamente", "success");
-          refetch();
+
+          // Marcar que necesitamos refetch de los datos
+          setShouldRefetch(true);
         } catch (err: any) {
           Swal.fire("Error", err.message || "Ocurrió un problema al eliminar el sitio", "error");
         }
@@ -84,6 +91,9 @@ const SitesPage = () => {
 
   const handleEditSite = (site: any) => {
     siteModal.onOpen(site);
+
+    // Marcar que necesitamos refetch de los datos
+    setShouldRefetch(true);
   };
 
   const handlePageChange = (newPage: number) => {
@@ -98,6 +108,13 @@ const SitesPage = () => {
       setTotalPages(pages);
     }
   }, [sites, rowsPerPage]);
+
+  useEffect(() => {
+    if (shouldRefetch) {
+      refetch(); // Recargar los datos cuando se haya marcado
+      setShouldRefetch(false); // Restablecer el estado
+    }
+  }, [shouldRefetch, refetch]);
 
   return (
     <main className="flex justify-center items-start w-full min-h-[calc(100vh-80px)]">
@@ -114,7 +131,7 @@ const SitesPage = () => {
             onClick={handleAddNewSite}
           />
         </div>
-        <SitesModal />
+        <SitesModal setShouldRefetch={setShouldRefetch} />
         <div className="flex flex-col w-full">
           <h2 className="font-bold text-xl text-gray-700 mb-4">Lista de Bodegas Disponibles</h2>
           {loading && <Label type="info" text="Cargando bodegas..." />}

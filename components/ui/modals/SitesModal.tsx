@@ -4,14 +4,12 @@ import { useSitesModal } from "@/hooks/modals/useSitesModal";
 import Form from "@/components/shared/Form/Form";
 import FormInput from "@/components/shared/Form/FormInput";
 import Button from "@/components/shared/Button/Button";
-import { useFetch } from "@/hooks/useFetch";
 import Swal from "sweetalert2";
-import { ISite } from "@/interfaces/ISite"; // Importa la interfaz ISite
+import { ISite } from "@/interfaces/ISite";
+import { useFetch } from "@/hooks/useFetch";
 
-const SiteModal = () => {
+const SiteModal = ({ setShouldRefetch }: { setShouldRefetch: React.Dispatch<React.SetStateAction<boolean>> }) => {
   const siteModal = useSitesModal();
-
-  // Estado inicial usando la interfaz ISite
   const [formData, setFormData] = useState<ISite>({
     nombre_sitio: "",
     direccion: "",
@@ -22,10 +20,10 @@ const SiteModal = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // Pre-cargar datos si se está editando un sitio
   useEffect(() => {
     if (siteModal.siteToEdit) {
       setFormData({
+        id_sitio: siteModal.siteToEdit.id_sitio,
         nombre_sitio: siteModal.siteToEdit.nombre_sitio || "",
         direccion: siteModal.siteToEdit.direccion || "",
         ciudad: siteModal.siteToEdit.ciudad || "",
@@ -41,22 +39,20 @@ const SiteModal = () => {
     }
   }, [siteModal.siteToEdit]);
 
-  // Definir la URL para el fetch
   const url = siteModal.siteToEdit
-    ? `/sitios/${siteModal.siteToEdit.id}`
+    ? `/sitios/${siteModal.siteToEdit.id_sitio}`
     : `/sitios`;
 
-  // Usar useFetch aquí para que esté en el cuerpo del componente
   const { data, error, loading, refetch } = useFetch<ISite>({
     url,
-    skipToken: false, // Cambia según necesites
+    method: siteModal.siteToEdit ? "PUT" : "POST",
+    body: JSON.stringify(formData),
+    skipToken: false,
   });
 
-  // Función para manejar el submit
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    // Validación básica
     if (!formData.nombre_sitio || !formData.direccion || !formData.ciudad || !formData.pais) {
       Swal.fire("Error", "Por favor, completa todos los campos.", "error");
       return;
@@ -65,44 +61,35 @@ const SiteModal = () => {
     setIsSubmitting(true);
     setSubmitError(null);
 
-    // Mapea los datos a los nombres que espera el backend
-    const mappedFormData: ISite = {
-      nombre_sitio: formData.nombre_sitio,
-      direccion: formData.direccion,
-      ciudad: formData.ciudad,
-      pais: formData.pais,
-    };
+    try {
+      await refetch();
 
-    // Configuración de la solicitud
-    const config: RequestInit = {
-      method: siteModal.siteToEdit ? "PUT" : "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(mappedFormData),
-    };
+      if (error) {
+        Swal.fire("Error", "Ocurrió un problema al procesar la solicitud.", "error");
+        return;
+      }
 
-    // Usa el hook `useFetch` para enviar la solicitud
-    if (!loading && !error) {
-      // Lógica para manejar los datos o errores después de hacer el fetch
       if (data) {
         Swal.fire(
           "Éxito",
           siteModal.siteToEdit ? "Bodega actualizada correctamente" : "Bodega creada correctamente",
           "success"
         );
+
+        // Marcar que necesitamos refetch de los datos
+        setShouldRefetch(true);
+
+        // Cerrar el modal solo después de la acción exitosa
         siteModal.onClose();
       }
-
-      if (error) {
-        console.error(error);
-        setSubmitError(error.message);
-        Swal.fire("Error", "Ocurrió un problema al procesar la solicitud.", "error");
-      }
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "Ocurrió un error");
+      Swal.fire("Error", "Ocurrió un problema al procesar la solicitud.", "error");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setIsSubmitting(false);
   };
 
-  // Manejar los cambios en los campos del formulario
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
     setFormData((prevData) => ({
@@ -150,7 +137,7 @@ const SiteModal = () => {
           type="submit"
           variant="primary"
           label={siteModal.siteToEdit ? "Actualizar Bodega" : "Crear Bodega"}
-        isDisabled={isSubmitting}
+          isDisabled={isSubmitting}
         />
       </div>
     </Form>
