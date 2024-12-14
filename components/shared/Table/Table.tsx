@@ -4,7 +4,7 @@ interface TableProps {
   data: Array<Record<string, any>>; // Datos completos para la tabla
   columns: number; // Número de columnas a mostrar
   rowsPerPage: number; // Número de filas por página
-  onEdit: (row: any) => void; // Función para editar un usuario
+  onEdit: (row: any) => void; // Función para editar un sitio
   onDelete: (id: string | number) => void; // Acepta tanto 'string' como 'number'
 }
 
@@ -15,8 +15,8 @@ const Table: React.FC<TableProps> = ({
   onEdit,
   onDelete,
 }) => {
-  const [currentPage, setCurrentPage] = useState(1); // Página actual
-  const totalPages = Math.ceil(data.length / rowsPerPage); // Número total de páginas
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = Math.ceil(data.length / rowsPerPage); // Cálculo correcto de páginas
 
   // Datos paginados
   const paginatedData = data.slice(
@@ -33,43 +33,72 @@ const Table: React.FC<TableProps> = ({
 
   return (
     <div className="overflow-x-auto w-full mt-4">
-      <table className="w-full table-auto border-collapse table-layout-auto">
-        <thead>
-          <tr>
-            {Object.keys(paginatedData[0] || {}).slice(0, columns).map((key) => (
-              <th key={key} className="border p-2 text-left">
-                {key}
-              </th>
-            ))}
-            <th className="border p-2">Acciones</th> {/* Columna de acciones */}
-          </tr>
-        </thead>
-        <tbody>
-          {paginatedData.map((row, index) => (
-            <tr key={index}>
-              {Object.entries(row).slice(0, columns).map(([key, value], colIndex) => (
-                <td key={colIndex} className="border p-2 break-words whitespace-normal">
-                  {value}
-                </td>
-              ))}
-              <td className="border p-2 flex justify-center space-x-2">
-                <button
-                  className="bg-blue-500 text-white px-4 py-2 rounded"
-                  onClick={() => onEdit(row)}
-                >
-                  Editar
-                </button>
-                <button
-                  className="bg-red-500 text-white px-4 py-2 rounded"
-                  onClick={() => onDelete(row.codigo_lote)} // Llamar con el parámetro adecuado
-                >
-                  Eliminar
-                </button>
-              </td>
+      {data.length === 0 ? (
+        <p className="text-center">No hay datos para mostrar.</p>
+      ) : (
+        <table className="w-full table-auto border-collapse table-layout-auto">
+          <thead>
+            <tr>
+              {Object.keys(paginatedData[0] || {})
+                .slice(0, columns) // Mostrar solo las primeras 'n' columnas
+                .map((key) => (
+                  <th key={key} className="border p-2 text-left">
+                    {key.charAt(0).toUpperCase() + key.slice(1)}
+                  </th>
+                ))}
+              <th className="border p-2">Acciones</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {paginatedData.map((row, index) => (
+              <tr key={index}>
+                {Object.entries(row)
+                  .slice(0, columns)
+                  .map(([key, value], colIndex) => (
+                    <td key={colIndex} className="border p-2 break-words whitespace-normal">
+                      {value}
+                    </td>
+                  ))}
+                <td className="border p-2 flex justify-center space-x-2">
+                  <button
+                    className="bg-blue-500 text-white px-4 py-2 rounded"
+                    onClick={() => onEdit(row)}
+                  >
+                    Editar
+                  </button>
+                  <button
+                    className="bg-red-500 text-white px-4 py-2 rounded"
+                    onClick={() => onDelete(row.id_sitio)}
+                  >
+                    Eliminar
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {/* Paginación */}
+      {totalPages > 1 && (
+        <div className="flex justify-center mt-4">
+          <button
+            className="px-4 py-2 bg-gray-300 rounded-l"
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+          >
+            Anterior
+          </button>
+          <span className="px-4 py-2">{`Página ${currentPage} de ${totalPages}`}</span>
+          <button
+            className="px-4 py-2 bg-gray-300 rounded-r"
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+          >
+            Siguiente
+          </button>
+        </div>
+      )}
     </div>
   );
 };

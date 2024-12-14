@@ -2,7 +2,7 @@
 export interface IRegisterFrom {
   //data for register form
   names: string
-  email: string
+  correo_electronico: string
   birthday: string
   password: string
   address: string
@@ -11,6 +11,6 @@ export interface IRegisterFrom {
 
 export interface ILoginForm {
   //data for login form
-  email: string
+  correo_electronico: string
   password: string
 }

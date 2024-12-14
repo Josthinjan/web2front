@@ -1,110 +1,133 @@
 "use client";
+import React, { useState, useEffect } from "react";
 import Button from "@/components/shared/Button/Button";
 import LateralNavbar from "@/components/ui/lateralNavbar/LateralNavbar";
-import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
-import Table from "@/components/shared/Table/Table"; // Importa el componente Table
-import SiteModal from "@/components/ui/modals/SiteModal"; // Importa el modal de sitios
-import { useSiteModal } from "@/hooks/modals/useSiteModal"; // Importa el hook para manejar el modal
-import { ISite } from "@/interfaces/ISite"; // Importa la interfaz de sitio
+import { config } from "@/config/config";
+import { useSitesModal } from "@/hooks/modals/useSitesModal";
+import SitesModal from "@/components/ui/modals/SitesModal";
 
-// Datos de ejemplo de sitios
-const sitios: ISite[] = [
-  { id: 1, name: "Bodega A", address: "Calle Ficticia 123", city: "Ciudad A", country: "País A" },
-  { id: 2, name: "Bodega B", address: "Calle Ficticia 456", city: "Ciudad B", country: "País B" },
-  { id: 3, name: "Bodega C", address: "Calle Ficticia 789", city: "Ciudad C", country: "País C" },
-];
+import Table from "@/components/shared/Table/Table";
+import { useFetch } from "@/hooks/useFetch";
+import Label from "@/components/ui/label/Label";
 
-const SitiosPage = () => {
-  const siteModal = useSiteModal();
-  const [sitiosData, setSitiosData] = useState<ISite[]>(sitios);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+const SitesPage = () => {
+  const siteModal = useSitesModal();
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(1);
+  const [showCreateSiteForm, setShowCreateSiteForm] = useState<boolean>(false);
+
+  const { data: responseData, error, loading, refetch } = useFetch({ url: "/sitios" });
+
+  const sites = responseData?.data || [];
+
   const rowsPerPage = 5;
 
-  // Calcular el número total de páginas
-  useEffect(() => {
-    const totalPagesCalculated = Math.ceil(sitiosData.length / rowsPerPage);
-    setTotalPages(totalPagesCalculated);
-  }, [sitiosData]);
-
-  // Obtener datos de la página actual para la paginación
   const getPaginatedData = () => {
     const startIndex = (currentPage - 1) * rowsPerPage;
     const endIndex = startIndex + rowsPerPage;
-    return sitiosData.slice(startIndex, endIndex);
+    return sites.slice(startIndex, endIndex);
   };
 
-  // Cambiar de página en la paginación
+  const handleAddNewSite = () => {
+    setShowCreateSiteForm(true);
+    siteModal.onOpen();
+  };
+
+  const handleDeleteSite = async (id: number | string) => {
+    Swal.fire({
+      title: "¿Estás seguro?",
+      text: "¡Esta acción no se puede deshacer!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar",
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const token = sessionStorage.getItem("token") ||
+            document.cookie.split("; ")
+              .find((row) => row.startsWith("token="))
+              ?.split("=")[1];
+
+          const tenant = sessionStorage.getItem("X_Tenant");
+
+          if (!tenant) {
+            Swal.fire("Error", "El tenant no está especificado", "error");
+            return;
+          }
+
+          const headers: HeadersInit = {
+            "Content-Type": "application/json",
+            Authorization: token ? `Bearer ${token}` : "",
+            "X-Tenant": tenant, 
+          };
+
+          const response = await fetch(`${config.API_BASE_URL}/sitios/${id}`, {
+            method: "DELETE",
+            headers,
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData?.error || `Error ${response.status}`);
+          }
+
+          Swal.fire("Eliminado", "Sitio eliminado correctamente", "success");
+          refetch();
+        } catch (err: any) {
+          Swal.fire("Error", err.message || "Ocurrió un problema al eliminar el sitio", "error");
+        }
+      }
+    });
+  };
+
+  const handleEditSite = (site: any) => {
+    siteModal.onOpen(site);
+  };
+
   const handlePageChange = (newPage: number) => {
     if (newPage > 0 && newPage <= totalPages) {
       setCurrentPage(newPage);
     }
   };
 
-  // Eliminar sitio
-  const handleDeleteSite = (id: number | string) => {
-    Swal.fire({
-      title: '¿Estás seguro?',
-      text: "¡Esta acción no se puede deshacer!",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonText: 'Sí, eliminar',
-      cancelButtonText: 'Cancelar'
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        try {
-          setSitiosData(sitiosData.filter(site => site.id !== id));
-          Swal.fire("Eliminado", "Sitio eliminado correctamente", "success");
-        } catch (error) {
-          Swal.fire("Error", "Ocurrió un problema al eliminar el sitio", "error");
-        }
-      }
-    });
-  };
-
-  // Agregar nuevo sitio
-  const handleAddNewSite = () => {
-    siteModal.onOpen(); // Abre el modal al añadir nuevo sitio
-  };
-
-  // Editar sitio
-  const handleEditSite = (site: ISite) => {
-    siteModal.onOpen(site); // Abre el modal con los datos del sitio a editar
-  };
+  useEffect(() => {
+    if (sites) {
+      const pages = Math.ceil(sites.length / rowsPerPage);
+      setTotalPages(pages);
+    }
+  }, [sites, rowsPerPage]);
 
   return (
     <main className="flex justify-center items-start w-full min-h-[calc(100vh-80px)]">
       <LateralNavbar />
       <div className="w-full flex flex-col p-4">
         <div className="text-start w-full mb-4">
-          <h1 className="text-2xl font-bold">Administración de Sitios</h1>
+          <h1 className="text-2xl font-bold">Administración de Bodegas</h1>
         </div>
         <div className="flex gap-3 justify-start items-center mb-6">
           <Button
-            label="Añadir Nuevo Sitio"
+            label="Añadir Nueva Bodega"
             type="button"
             variant="primary"
-            onClick={handleAddNewSite} // Llamar a la función para abrir el modal
+            onClick={handleAddNewSite}
           />
         </div>
-
-        <SiteModal />
+        <SitesModal />
         <div className="flex flex-col w-full">
-          <h2 className="font-bold text-xl text-gray-700 mb-4">Lista de Sitios</h2>
-          {loading && <p className="text-gray-500">Cargando...</p>}
-          {error && <p className="text-red-500">{error}</p>}
+          <h2 className="font-bold text-xl text-gray-700 mb-4">Lista de Bodegas Disponibles</h2>
+          {loading && <Label type="info" text="Cargando bodegas..." />}
+          {error && <Label type="error" text="Error al cargar los datos." />}
 
-          {!loading && !error && sitiosData.length > 0 ? (
+          {!loading && !error && sites.length > 0 ? (
             <>
               <Table
                 data={getPaginatedData()}
-                columns={4} // Número de columnas que deseas mostrar (ajustar a los campos de sitio)
+                columns={5}
                 rowsPerPage={rowsPerPage}
-                onEdit={handleEditSite} // Función para editar
-                onDelete={handleDeleteSite} // Función para eliminar
+                onEdit={handleEditSite}
+                onDelete={handleDeleteSite}
               />
               <div className="flex justify-between mt-4 w-full">
                 <button
@@ -127,7 +150,7 @@ const SitiosPage = () => {
               </div>
             </>
           ) : (
-            !loading && <p className="text-gray-500">No hay sitios para mostrar.</p>
+            !loading && <Label type="info" text="No hay bodegas para mostrar." />
           )}
         </div>
       </div>
@@ -135,4 +158,4 @@ const SitiosPage = () => {
   );
 };
 
-export default SitiosPage;
+export default SitesPage;

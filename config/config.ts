@@ -1,5 +1,5 @@
 export const config = {
-  API_BASE_URL: 'http://127.0.0.1:8000/api', // la que debe pasar stefano
+  API_BASE_URL: 'http://52.254.7.116/api',
   PRO_API_URL: 'http://somepalce:someport/api',
 
 }
@@ -17,7 +17,7 @@ export const getTokenFromCookie = () => {
     // console.log(`Cookie actual: ${c}`); // Log para verificar cada cookie
     if (c.startsWith(name)) {
       const token = c.substring(name.length, c.length);
-      // console.log('Token obtenido de la cookie:', token); // Log para verificar el token
+      console.log('Token obtenido de la cookie:', token); // Log para verificar el token
       return token;
     }
   }
@@ -30,6 +30,6 @@ export const getTokenFromCookie = () => {
     return sessionToken;
   }
 
-  // console.log('Token no encontrado en sessionStorage');
+  console.log('Token no encontrado en sessionStorage');
   return '';
 };
