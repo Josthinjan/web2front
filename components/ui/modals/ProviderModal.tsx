@@ -1,73 +1,106 @@
-"use client";
 import React, { FormEvent, useState, useEffect } from "react";
-import Modal from "./Modal";
+import Modal from "./Modal"; // Modal general
 import { useProviderModal } from "@/hooks/modals/useProviderModal"; // Hook para manejar el estado del modal
 import { IProvider } from "@/interfaces/IProvider"; // Interfaz del proveedor
-import Form from "@/components/shared/Form/Form";
-import FormInput from "@/components/shared/Form/FormInput";
-import FormSelectInput from "@/components/shared/Form/selectElement/FormSelectInput";
-import Button from "@/components/shared/Button/Button";
+import Form from "@/components/shared/Form/Form"; // Formulario general
+import FormInput from "@/components/shared/Form/FormInput"; // Input de formulario
+import FormSelectInput from "@/components/shared/Form/selectElement/FormSelectInput"; // Input select para el estado "activo"
+import Button from "@/components/shared/Button/Button"; // Botón de formulario
+import Swal from "sweetalert2"; // Alerta
+import { useFetch } from "@/hooks/useFetch"; // Hook para realizar fetch
 
-const ProviderModal = () => {
+const ProviderModal = ({ setShouldRefetch }: { setShouldRefetch: React.Dispatch<React.SetStateAction<boolean>> }) => {
   const providerModal = useProviderModal(); // Usamos el hook para el estado del modal
   const [formData, setFormData] = useState<IProvider>({
-    name: "",
+    nombre: "",
+    direccion: "",
     email: "",
-    phone: "",
-    address: "",
-    city: "",
-    active: true, // Estado por defecto
+    telefono: "",
+    Cuidad: "",
+    activo: true, // Estado por defecto
   });
 
-  // Si providerToEdit está presente, precargamos los valores del formulario
+  const [isSubmitting, setIsSubmitting] = useState(false); // Estado para controlar el envío del formulario
+  const [submitError, setSubmitError] = useState<string | null>(null); // Para manejar errores de envío
+
+  // Pre-cargar datos en caso de estar editando un proveedor
   useEffect(() => {
     if (providerModal.providerToEdit) {
       setFormData({
-        name: providerModal.providerToEdit.name,
-        email: providerModal.providerToEdit.email,
-        phone: providerModal.providerToEdit.phone,
-        address: providerModal.providerToEdit.address,
-        city: providerModal.providerToEdit.city,
-        active: providerModal.providerToEdit.active,
+        nombre: providerModal.providerToEdit.nombre || "",
+        direccion: providerModal.providerToEdit.direccion || "",
+        email: providerModal.providerToEdit.email || "",
+        telefono: providerModal.providerToEdit.telefono || "",
+        Cuidad: providerModal.providerToEdit.Cuidad || "",
+        activo: providerModal.providerToEdit.activo,
       });
     } else {
       // Limpiar los datos cuando no se está editando
       setFormData({
-        name: "",
+        nombre: "",
+        direccion: "",
         email: "",
-        phone: "",
-        address: "",
-        city: "",
-        active: true,
+        telefono: "",
+        Cuidad: "",
+        activo: true,
       });
     }
   }, [providerModal.providerToEdit]);
 
+  // Determina la URL y método para el fetch (crear o actualizar)
+  const url = providerModal.providerToEdit
+    ? `/proveedores/${providerModal.providerToEdit.id_proveedor}` // URL para editar
+    : `/proveedor`; // URL para crear nuevo
+
+  const { data, error, loading, refetch } = useFetch<IProvider>({
+    url,
+    method: providerModal.providerToEdit ? "PUT" : "POST", // Cambia el método según si es edición o creación
+    body: JSON.stringify(formData),
+    skipToken: false,
+  });
+
+  // Manejo del formulario
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (
-      formData.name &&
-      formData.email &&
-      formData.phone &&
-      formData.address &&
-      formData.city
-    ) {
-      // Lógica para guardar o actualizar el proveedor
-      console.log("Proveedor creado/actualizado:", formData);
+    if (!formData.nombre || !formData.email || !formData.telefono || !formData.direccion || !formData.Cuidad) {
+      Swal.fire("Error", "Por favor, completa todos los campos.", "error");
+      return;
+    }
 
-      // Si estamos editando, pasamos los datos al backend con un PUT, si no es un POST para crear
-      if (providerModal.providerToEdit) {
-        // Lógica para actualizar el proveedor
-        console.log("Editando proveedor:", formData);
-      } else {
-        // Lógica para crear el proveedor
-        console.log("Creando nuevo proveedor:", formData);
+    const isEmailValid = /^\S+@\S+\.\S+$/.test(formData.email);
+    if (!isEmailValid) {
+      Swal.fire("Error", "Por favor, ingresa un correo electrónico válido.", "error");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      // Esperamos a que la operación de fetch y refetch se completen antes de mostrar la alerta
+      await refetch();  // Esperamos a que refetch se complete
+
+      if (error) {
+        Swal.fire("Error", "Ocurrió un problema al procesar la solicitud.", "error");
+        return;
       }
 
-      providerModal.onClose(); // Cerrar el modal después de crear o actualizar el proveedor
-    } else {
-      console.log("Por favor, completa todos los campos.");
+      if (data) {
+        Swal.fire(
+          "Éxito",
+          providerModal.providerToEdit ? "Proveedor actualizado correctamente" : "Proveedor creado correctamente",
+          "success"
+        );
+
+        setShouldRefetch(true); // Refrescar la lista de proveedores después de crear o actualizar
+        providerModal.onClose(); // Cerrar el modal después de la acción exitosa
+      }
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "Ocurrió un error");
+      Swal.fire("Error", "Ocurrió un problema al procesar la solicitud.", "error");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -75,17 +108,18 @@ const ProviderModal = () => {
     const { name, value } = event.target;
     setFormData((prevData) => ({
       ...prevData,
-      [name]: value,
+      [name]: name === "activo" ? value === "true" : value, // Convierte el valor de activo a booleano
     }));
   };
 
+  // Cuerpo del modal con el formulario
   const providerModalBody = (
     <Form onSubmit={handleSubmit}>
       <FormInput
         label="Nombre del Proveedor"
-        name="name"
-        idInput="name"
-        value={formData.name}
+        name="nombre"
+        idInput="nombre"
+        value={formData.nombre}
         onChange={handleChange}
         type="text"
       />
@@ -99,41 +133,46 @@ const ProviderModal = () => {
       />
       <FormInput
         label="Teléfono"
-        name="phone"
-        idInput="phone"
-        value={formData.phone}
+        name="telefono"
+        idInput="telefono"
+        value={formData.telefono}
         onChange={handleChange}
         type="text"
       />
       <FormInput
         label="Dirección"
-        name="address"
-        idInput="address"
-        value={formData.address}
+        name="direccion"
+        idInput="direccion"
+        value={formData.direccion}
         onChange={handleChange}
         type="text"
       />
       <FormInput
-        label="Ciudad"
-        name="city"
-        idInput="city"
-        value={formData.city}
+        label="Cuidad"
+        name="Cuidad"
+        idInput="Cuidad"
+        value={formData.Cuidad}
         onChange={handleChange}
         type="text"
       />
       <FormSelectInput
         label="¿Está Activo?"
-        selectName="active"
-        selectId="active"
-        value={formData.active ? "true" : "false"}
+        selectName="activo"
+        selectId="activo"
+        value={formData.activo ? "true" : "false"}
         onChange={handleChange}
         options={[
           { value: "true", name: "Sí" },
           { value: "false", name: "No" },
         ]}
       />
-      <div>
-        <Button type="submit" variant="primary" label={providerModal.providerToEdit ? "Actualizar Proveedor" : "Crear Proveedor"} />
+      <div className="w-full py-6">
+        <Button
+          type="submit"
+          variant="primary"
+          label={providerModal.providerToEdit ? "Actualizar Proveedor" : "Crear Proveedor"}
+          isDisabled={isSubmitting} // Deshabilita el botón mientras se está enviando
+        />
       </div>
     </Form>
   );

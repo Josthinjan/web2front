@@ -12,7 +12,7 @@ const Header = () => {
         <NavLinkHeader title="Productos" href="/pricing" />
         <NavLinkHeader title="Iniciar Sesion" href="/auth/login" />
         <Button variant="primary" label="Contactar ventas" onClick={() => console.log("Hola")} type="button"/>
-        <Button variant="outline" label="Empezar" Icon={FaCaretRight} onClick={() => console.log("Hola")} type="button"/>
+        <Button variant="outline" label="Empezar" Icon={FaCaretRight} onClick={() => window.location.href = "/auth/login"} type="button"/>
       </nav>
     </header>
   );

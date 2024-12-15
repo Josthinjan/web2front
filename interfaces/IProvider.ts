@@ -1,9 +1,9 @@
 export interface IProvider {
-  id?: number;
-  name: string;
+  id_proveedor?: number;
+  nombre: string;
   email: string;
-  phone: string;
-  address: string;
-  city: string;
-  active: boolean;
+  telefono: string;
+  direccion: string;
+  Cuidad: string;
+  activo: boolean;
 }

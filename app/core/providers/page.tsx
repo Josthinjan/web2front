@@ -1,63 +1,86 @@
-"use client";
+'use client';
+import React, { useState, useEffect } from "react";
 import Button from "@/components/shared/Button/Button";
 import LateralNavbar from "@/components/ui/lateralNavbar/LateralNavbar";
-import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
-import Table from "@/components/shared/Table/Table"; // Importa el componente Table
-import ProviderModal from "@/components/ui/modals/ProviderModal"; // Importa el modal de proveedores
-import { useProviderModal } from "@/hooks/modals/useProviderModal"; // Importa el hook para manejar el modal
-import { IProvider } from "@/interfaces/IProvider"; // Importa la interfaz de proveedor
-
-// Datos de ejemplo de proveedores
-const proveedores: IProvider[] = [
-  { id: 1, name: "Proveedor A", email: "proveedorA@mail.com", phone: "123456789", address: "Calle A", city: "Ciudad A", active: true },
-  { id: 2, name: "Proveedor B", email: "proveedorB@mail.com", phone: "987654321", address: "Calle B", city: "Ciudad B", active: false },
-  { id: 3, name: "Proveedor C", email: "proveedorC@mail.com", phone: "123123123", address: "Calle C", city: "Ciudad C", active: true },
-];
+import Table from "@/components/shared/Table/Table"; 
+import ProviderModal from "@/components/ui/modals/ProviderModal"; 
+import { useProviderModal } from "@/hooks/modals/useProviderModal"; 
+import { useFetch } from "@/hooks/useFetch"; 
+import { config } from "@/config/config"; // Ajusta si el config tiene el API base
+import { IProvider } from "@/interfaces/IProvider";
 
 const ProveedoresPage = () => {
   const providerModal = useProviderModal();
-  const [proveedoresData, setProveedoresData] = useState<IProvider[]>(proveedores);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(1);
   const rowsPerPage = 5;
 
-  // Calcular el número total de páginas
-  useEffect(() => {
-    const totalPagesCalculated = Math.ceil(proveedoresData.length / rowsPerPage);
-    setTotalPages(totalPagesCalculated);
-  }, [proveedoresData]);
+  const { data: proveedoresData, loading, error, refetch } = useFetch<IProvider[]>({
+    url: "/proveedores",
+  });
 
-  // Obtener datos de la página actual para la paginación
+  const proveedores = proveedoresData || [];
+
+  useEffect(() => {
+    const totalPagesCalculated = Math.ceil(proveedores.length / rowsPerPage);
+    setTotalPages(totalPagesCalculated);
+  }, [proveedores]);
+
   const getPaginatedData = () => {
     const startIndex = (currentPage - 1) * rowsPerPage;
     const endIndex = startIndex + rowsPerPage;
-    return proveedoresData.slice(startIndex, endIndex);
+    return proveedores.slice(startIndex, endIndex);
   };
 
-  // Cambiar de página en la paginación
   const handlePageChange = (newPage: number) => {
     if (newPage > 0 && newPage <= totalPages) {
       setCurrentPage(newPage);
     }
   };
 
-  // Eliminar proveedor
-  const handleDeleteProvider = (id: number| string) => {
+  const handleDeleteProvider = (id: number | string) => {
     Swal.fire({
-      title: '¿Estás seguro?',
+      title: "¿Estás seguro?",
       text: "¡Esta acción no se puede deshacer!",
-      icon: 'warning',
+      icon: "warning",
       showCancelButton: true,
-      confirmButtonText: 'Sí, eliminar',
-      cancelButtonText: 'Cancelar'
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar",
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          setProveedoresData(proveedoresData.filter(provider => provider.id !== id));
+          const token = sessionStorage.getItem("token") ||
+            document.cookie.split("; ")
+              .find((row) => row.startsWith("token="))
+              ?.split("=")[1];
+
+          const tenant = sessionStorage.getItem("X_Tenant");
+
+          if (!tenant) {
+            Swal.fire("Error", "El tenant no está especificado", "error");
+            return;
+          }
+
+          const headers: HeadersInit = {
+            "Content-Type": "application/json",
+            Authorization: token ? `Bearer ${token}` : "",
+            "X-Tenant": tenant, 
+          };
+
+          const response = await fetch(`${config.API_BASE_URL}/proveedores/${id}`, {
+            method: "DELETE",
+            headers,
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData?.error || `Error ${response.status}`);
+          }
+
           Swal.fire("Eliminado", "Proveedor eliminado correctamente", "success");
+
+          refetch();  // Refrescar la lista después de eliminar
         } catch (error) {
           Swal.fire("Error", "Ocurrió un problema al eliminar el proveedor", "error");
         }
@@ -65,14 +88,12 @@ const ProveedoresPage = () => {
     });
   };
 
-  // Agregar nuevo proveedor
   const handleAddNewProvider = () => {
-    providerModal.onOpen(); // Abre el modal al añadir nuevo proveedor
+    providerModal.onOpen();
   };
 
-  // Editar proveedor
   const handleEditProvider = (provider: IProvider) => {
-    providerModal.onOpen(provider); // Abre el modal con los datos del proveedor a editar
+    providerModal.onOpen(provider); 
   };
 
   return (
@@ -87,38 +108,34 @@ const ProveedoresPage = () => {
             label="Añadir Nuevo Proveedor"
             type="button"
             variant="primary"
-            onClick={handleAddNewProvider} // Llamar a la función para abrir el modal
+            onClick={handleAddNewProvider} 
           />
         </div>
         
-        <ProviderModal />
+        <ProviderModal setShouldRefetch={refetch} />
+        
         <div className="flex flex-col w-full">
           <h2 className="font-bold text-xl text-gray-700 mb-4">Lista de Proveedores</h2>
           {loading && <p className="text-gray-500">Cargando...</p>}
-          {error && <p className="text-red-500">{error}</p>}
+          {error && <p className="text-red-500">{error?.message}</p>}
 
-          {!loading && !error && proveedoresData.length > 0 ? (
+          {!loading && !error && proveedores.length > 0 ? (
             <>
               <Table
                 data={getPaginatedData()}
-                columns={6} // Número de columnas que deseas mostrar (ajustar a los campos de proveedor)
+                columns={6}  // Ajusta el número de columnas según los campos de tu interfaz
                 rowsPerPage={rowsPerPage}
-                onEdit={handleEditProvider} // Función para editar
-                onDelete={handleDeleteProvider} // Función para eliminar
+                onEdit={handleEditProvider} 
+                onDelete={handleDeleteProvider} 
               />
-              <div className="flex justify-between mt-4 w-full">
+              <div className="flex justify-between">
                 <button
-                  className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
                 >
                   Anterior
                 </button>
-                <span>
-                  Página {currentPage} de {totalPages}
-                </span>
                 <button
-                  className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
                 >
@@ -127,7 +144,7 @@ const ProveedoresPage = () => {
               </div>
             </>
           ) : (
-            !loading && <p className="text-gray-500">No hay proveedores para mostrar.</p>
+            <p>No hay proveedores registrados.</p>
           )}
         </div>
       </div>

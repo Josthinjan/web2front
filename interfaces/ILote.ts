@@ -1,9 +1,10 @@
 export interface ILote {
-  productId: number;
-  providerId: number;
-  loteCode: string;
-  manufactoringDate: string;
-  expirationDate: string;
-  quantity: number;
-  isExpirable: boolean;
+  id_lote?: number;
+  id_producto: number;
+  id_proveedor: number;
+  id_sitio: number;
+  fecha_fabricacion: string;
+  fecha_caducidad: string;
+  cantidad: number;
+  expirable: boolean;
 }

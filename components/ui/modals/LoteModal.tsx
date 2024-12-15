@@ -1,66 +1,137 @@
-"use client";
-import React, { FormEvent, useState, useEffect } from 'react';
-import Modal from './Modal';
-import { useLoteModal } from '@/hooks/modals/useLoteModal'; // Hook para manejar el estado del modal
-import { ILote } from '@/interfaces/ILote'; // Interfaz del lote
-import Form from '@/components/shared/Form/Form';
-import FormInput from '@/components/shared/Form/FormInput';
-import FormSelectInput from '@/components/shared/Form/selectElement/FormSelectInput';
-import Button from '@/components/shared/Button/Button';
+import React, { FormEvent, useState, useEffect } from "react";
+import Modal from "./Modal";
+import { useLoteModal } from "@/hooks/modals/useLoteModal";
+import Form from "@/components/shared/Form/Form";
+import FormInput from "@/components/shared/Form/FormInput";
+import FormSelectInput from "@/components/shared/Form/selectElement/FormSelectInput";
+import Button from "@/components/shared/Button/Button";
+import Swal from "sweetalert2";
+import { ILote } from "@/interfaces/ILote";
+import { useFetch } from "@/hooks/useFetch";
+import { config } from "@/config/config";
 
-const LoteModal = () => {
-  const loteModal = useLoteModal(); // Usamos el hook de zustand para el estado del modal
+const LoteModal = ({ setShouldRefetch }: { setShouldRefetch: React.Dispatch<React.SetStateAction<boolean>> }) => {
+  const loteModal = useLoteModal();
   const [formData, setFormData] = useState<ILote>({
-    productId: 0,
-    providerId: 0,
-    loteCode: '',
-    manufactoringDate: '',
-    expirationDate: '',
-    quantity: 0,
-    isExpirable: false, // Estado por defecto
+    id_producto: 0,
+    id_proveedor: 0,
+    id_sitio: 0,
+    fecha_fabricacion: "",
+    fecha_caducidad: "",
+    cantidad: 0,
+    expirable: false,
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Si loteToEdit está presente, precargamos los valores del formulario
+  const [sitios, setSitios] = useState<{ id: number; nombre: string }[]>([]);
+  const [productos, setProductos] = useState<{ id: number; nombre: string }[]>([]);
+  const [proveedores, setProveedores] = useState<{ id: number; nombre: string }[]>([]);
+
+  const [loadingSitios, setLoadingSitios] = useState(true);
+  const [loadingProductos, setLoadingProductos] = useState(true);
+  const [loadingProveedores, setLoadingProveedores] = useState(true);
+
   useEffect(() => {
     if (loteModal.loteToEdit) {
+      setFormData(loteModal.loteToEdit);
+    } else {
       setFormData({
-        productId: loteModal.loteToEdit.productId,
-        providerId: loteModal.loteToEdit.providerId,
-        loteCode: loteModal.loteToEdit.loteCode,
-        manufactoringDate: loteModal.loteToEdit.manufactoringDate,
-        expirationDate: loteModal.loteToEdit.expirationDate,
-        quantity: loteModal.loteToEdit.quantity,
-        isExpirable: loteModal.loteToEdit.isExpirable,
+        id_producto: 0,
+        id_proveedor: 0,
+        id_sitio: 0,
+        fecha_fabricacion: "",
+        fecha_caducidad: "",
+        cantidad: 0,
+        expirable: false,
       });
     }
   }, [loteModal.loteToEdit]);
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const token = sessionStorage.getItem("token") || document.cookie.split("; ").find((row) => row.startsWith("token="))?.split("=")[1];
+        const tenant = sessionStorage.getItem("X_Tenant");
+
+        if (!tenant) {
+          Swal.fire("Error", "El tenant no está especificado", "error");
+          return;
+        }
+
+        const headers: HeadersInit = {
+          "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : "",
+          "X-Tenant": tenant,
+        };
+
+        const [sitiosResponse, productosResponse, proveedoresResponse] = await Promise.all([
+          fetch(`${config.API_BASE_URL}/sitios`, { headers }),
+          fetch(`${config.API_BASE_URL}/productos`, { headers }),
+          fetch(`${config.API_BASE_URL}/proveedores`, { headers }),
+        ]);
+
+        const sitiosData = await sitiosResponse.json();
+        const productosData = await productosResponse.json();
+        const proveedoresData = await proveedoresResponse.json();
+
+        setSitios(Array.isArray(sitiosData) ? sitiosData : []);
+        setProductos(Array.isArray(productosData) ? productosData : []);
+        setProveedores(Array.isArray(proveedoresData) ? proveedoresData : []);
+      } catch (error) {
+        console.error("Error al obtener los datos:", error);
+        setSitios([]);
+        setProductos([]);
+        setProveedores([]);
+      } finally {
+        setLoadingSitios(false);
+        setLoadingProductos(false);
+        setLoadingProveedores(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const url = loteModal.loteToEdit
+    ? `/api/lotes/${loteModal.loteToEdit.id_lote}`
+    : `/api/lotes`;
+
+  const { data, error, loading, refetch } = useFetch<ILote>({
+    url,
+    method: loteModal.loteToEdit ? "PUT" : "POST",
+    body: JSON.stringify(formData),
+    skipToken: false,
+  });
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (
-      formData.productId > 0 &&
-      formData.providerId > 0 &&
-      formData.loteCode &&
-      formData.manufactoringDate &&
-      formData.expirationDate &&
-      formData.quantity > 0
-    ) {
-      // Lógica para guardar o actualizar el lote
-      console.log("Lote creado/actualizado:", formData);
+    if (!formData.id_sitio || !formData.fecha_fabricacion || !formData.fecha_caducidad || !formData.cantidad) {
+      Swal.fire("Error", "Por favor, completa todos los campos.", "error");
+      return;
+    }
 
-      // Si estamos editando, pasamos los datos al backend con un PUT, si no es un POST para crear
-      if (loteModal.loteToEdit) {
-        // Lógica para actualizar el lote
-        console.log('Editando lote:', formData);
-      } else {
-        // Lógica para crear el lote
-        console.log('Creando nuevo lote:', formData);
+    setIsSubmitting(true);
+
+    try {
+      await refetch();
+
+      if (error) {
+        throw new Error(error.message || "Error al guardar el lote.");
       }
 
-      loteModal.onClose(); // Cerrar el modal después de crear o actualizar el lote
-    } else {
-      console.log("Por favor, completa todos los campos.");
+      Swal.fire(
+        "Éxito",
+        loteModal.loteToEdit ? "Lote actualizado correctamente" : "Lote creado correctamente",
+        "success"
+      );
+
+      setShouldRefetch(true);
+      loteModal.onClose();
+    } catch (err) {
+      Swal.fire("Error", err.message || "Ocurrió un problema.", "error");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -68,73 +139,79 @@ const LoteModal = () => {
     const { name, value } = event.target;
     setFormData((prevData) => ({
       ...prevData,
-      [name]: value,
+      [name]: name === "expirable" ? value === "true" : parseInt(value),
     }));
   };
 
   const loteModalBody = (
     <Form onSubmit={handleSubmit}>
-      <FormInput
-        label="Código de Lote"
-        name="loteCode"
-        idInput="loteCode"
-        value={formData.loteCode}
+      {/* Check if sitios, productos, and proveedores are loaded properly */}
+      <FormSelectInput
+        label="Sitio"
+        selectName="id_sitio"
+        selectId="id_sitio"
+        value={formData.id_sitio.toString()}
         onChange={handleChange}
-        type="text"
+        options={loadingSitios || !sitios.length ? [] : sitios.map((sitio) => ({ value: sitio.id.toString(), name: sitio.nombre }))}
       />
-      <FormInput
-        label="ID de Producto"
-        name="productId"
-        idInput="productId"
-        value={formData.productId}
+      <FormSelectInput
+        label="Producto"
+        selectName="id_producto"
+        selectId="id_producto"
+        value={formData.id_producto.toString()}
         onChange={handleChange}
-        type="number"
+        options={loadingProductos || !productos.length ? [] : productos.map((producto) => ({ value: producto.id.toString(), name: producto.nombre }))}
       />
-      <FormInput
-        label="ID de Proveedor"
-        name="providerId"
-        idInput="providerId"
-        value={formData.providerId}
+      <FormSelectInput
+        label="Proveedor"
+        selectName="id_proveedor"
+        selectId="id_proveedor"
+        value={formData.id_proveedor.toString()}
         onChange={handleChange}
-        type="number"
+        options={loadingProveedores || !proveedores.length ? [] : proveedores.map((proveedor) => ({ value: proveedor.id.toString(), name: proveedor.nombre }))}
       />
       <FormInput
         label="Fecha de Fabricación"
-        name="manufactoringDate"
-        idInput="manufactoringDate"
-        value={formData.manufactoringDate}
+        name="fecha_fabricacion"
+        idInput="fecha_fabricacion"
+        value={formData.fecha_fabricacion}
         onChange={handleChange}
         type="date"
       />
       <FormInput
         label="Fecha de Expiración"
-        name="expirationDate"
-        idInput="expirationDate"
-        value={formData.expirationDate}
+        name="fecha_caducidad"
+        idInput="fecha_caducidad"
+        value={formData.fecha_caducidad}
         onChange={handleChange}
         type="date"
       />
       <FormInput
         label="Cantidad"
-        name="quantity"
-        idInput="quantity"
-        value={formData.quantity}
+        name="cantidad"
+        idInput="cantidad"
+        value={formData.cantidad}
         onChange={handleChange}
         type="number"
       />
       <FormSelectInput
         label="¿Es Expirable?"
-        selectName="isExpirable"
-        selectId="isExpirable"
-        value={formData.isExpirable ? 'true' : 'false'}
+        selectName="expirable"
+        selectId="expirable"
+        value={formData.expirable ? "true" : "false"}
         onChange={handleChange}
         options={[
-          { value: 'true', name: 'Sí' },
-          { value: 'false', name: 'No' },
+          { value: "true", name: "Sí" },
+          { value: "false", name: "No" },
         ]}
       />
       <div>
-        <Button type="submit" variant="primary" label={loteModal.loteToEdit ? "Actualizar Lote" : "Crear Lote"} />
+        <Button
+          type="submit"
+          variant="primary"
+          label={loteModal.loteToEdit ? "Actualizar Lote" : "Crear Lote"}
+          isDisabled={isSubmitting}
+        />
       </div>
     </Form>
   );
