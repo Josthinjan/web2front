@@ -16,10 +16,17 @@ const UsuariosPage = () => {
   const [usuarios, setUsuarios] = useState<any[]>([]);  // Estado para almacenar usuarios
   const [pagination, setPagination] = useState<any>({}); // Estado para la paginación
   const [currentPage, setCurrentPage] = useState(1); // Estado para la página actual
+  const [role, setRole] = useState<string | null>(null); // Estado para almacenar el rol del usuario
+
+  // Obtener el rol del usuario desde sessionStorage
+  useEffect(() => {
+    const userRole = sessionStorage.getItem("role");
+    setRole(userRole);
+  }, []);
 
   // Hook de fetch para obtener los usuarios
   const { data, error, loading, refetch } = useFetch({
-    url: `/usuarios?page=${currentPage}`, // Incluir la página en la URL
+    url: role === "Admin" ? `/usuarios/all?page=${currentPage}` : `/usuarios?page=${currentPage}`, // Incluir la página en la URL
   });
 
   // Cargar los usuarios de la API
