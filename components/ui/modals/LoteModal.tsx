@@ -1,135 +1,121 @@
 import React, { FormEvent, useState, useEffect } from "react";
 import Modal from "./Modal";
 import { useLoteModal } from "@/hooks/modals/useLoteModal";
+import { ILote } from "@/interfaces/ILote";
+import { ISite } from "@/interfaces/ISite";
+import { IProducts } from "@/interfaces/IProducts";
+import { IProvider } from "@/interfaces/IProvider";
 import Form from "@/components/shared/Form/Form";
 import FormInput from "@/components/shared/Form/FormInput";
 import FormSelectInput from "@/components/shared/Form/selectElement/FormSelectInput";
 import Button from "@/components/shared/Button/Button";
-import Swal from "sweetalert2";
-import { ILote } from "@/interfaces/ILote";
 import { useFetch } from "@/hooks/useFetch";
+import Swal from "sweetalert2";
 import { config } from "@/config/config";
 
-const LoteModal = ({ setShouldRefetch }: { setShouldRefetch: React.Dispatch<React.SetStateAction<boolean>> }) => {
+// Definir las propiedades que recibe LoteModal
+interface LoteModalProps {
+  setShouldRefetch: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
+const LoteModal: React.FC<LoteModalProps> = ({ setShouldRefetch }) => {
   const loteModal = useLoteModal();
   const [formData, setFormData] = useState<ILote>({
+    id_lote: 0,
     id_producto: 0,
     id_proveedor: 0,
     id_sitio: 0,
+    codigo_lote: "",
     fecha_fabricacion: "",
     fecha_caducidad: "",
     cantidad: 0,
     expirable: false,
+    created_at: "",
+    updated_at: "",
   });
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [sitios, setSitios] = useState<{ id: number; nombre: string }[]>([]);
-  const [productos, setProductos] = useState<{ id: number; nombre: string }[]>([]);
-  const [proveedores, setProveedores] = useState<{ id: number; nombre: string }[]>([]);
+  // Usar useFetch para cargar los datos de sitios, productos y proveedores
+  const { data: sitiosResponse } = useFetch<{ data: ISite[] }>({ url: "/sitios" });
+  const { data: productos } = useFetch<IProducts[]>({ url: "/productos" });
+  const { data: proveedores } = useFetch<IProvider[]>({ url: "/proveedores" });
 
-  const [loadingSitios, setLoadingSitios] = useState(true);
-  const [loadingProductos, setLoadingProductos] = useState(true);
-  const [loadingProveedores, setLoadingProveedores] = useState(true);
+  const sitios = sitiosResponse?.data || [];
 
   useEffect(() => {
     if (loteModal.loteToEdit) {
-      setFormData(loteModal.loteToEdit);
+      setFormData({
+        ...loteModal.loteToEdit,
+      });
     } else {
       setFormData({
+        id_lote: 0,
         id_producto: 0,
         id_proveedor: 0,
         id_sitio: 0,
+        codigo_lote: "",
         fecha_fabricacion: "",
         fecha_caducidad: "",
         cantidad: 0,
         expirable: false,
+        created_at: "",
+        updated_at: "",
       });
     }
   }, [loteModal.loteToEdit]);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const token = sessionStorage.getItem("token") || document.cookie.split("; ").find((row) => row.startsWith("token="))?.split("=")[1];
-        const tenant = sessionStorage.getItem("X_Tenant");
-
-        if (!tenant) {
-          Swal.fire("Error", "El tenant no está especificado", "error");
-          return;
-        }
-
-        const headers: HeadersInit = {
-          "Content-Type": "application/json",
-          Authorization: token ? `Bearer ${token}` : "",
-          "X-Tenant": tenant,
-        };
-
-        const [sitiosResponse, productosResponse, proveedoresResponse] = await Promise.all([
-          fetch(`${config.API_BASE_URL}/sitios`, { headers }),
-          fetch(`${config.API_BASE_URL}/productos`, { headers }),
-          fetch(`${config.API_BASE_URL}/proveedores`, { headers }),
-        ]);
-
-        const sitiosData = await sitiosResponse.json();
-        const productosData = await productosResponse.json();
-        const proveedoresData = await proveedoresResponse.json();
-
-        setSitios(Array.isArray(sitiosData) ? sitiosData : []);
-        setProductos(Array.isArray(productosData) ? productosData : []);
-        setProveedores(Array.isArray(proveedoresData) ? proveedoresData : []);
-      } catch (error) {
-        console.error("Error al obtener los datos:", error);
-        setSitios([]);
-        setProductos([]);
-        setProveedores([]);
-      } finally {
-        setLoadingSitios(false);
-        setLoadingProductos(false);
-        setLoadingProveedores(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  const url = loteModal.loteToEdit
-    ? `/api/lotes/${loteModal.loteToEdit.id_lote}`
-    : `/api/lotes`;
-
   const { data, error, loading, refetch } = useFetch<ILote>({
-    url,
+    url: loteModal.loteToEdit
+      ? `/lotes/${loteModal.loteToEdit.id_lote}`
+      : "/lotes",
     method: loteModal.loteToEdit ? "PUT" : "POST",
-    body: JSON.stringify(formData),
+    body: JSON.stringify({
+      ...formData,
+      id_producto: Number(formData.id_producto),
+      id_proveedor: Number(formData.id_proveedor),
+      id_sitio: Number(formData.id_sitio),
+      cantidad: Number(formData.cantidad),
+    }),
     skipToken: false,
   });
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!formData.id_sitio || !formData.fecha_fabricacion || !formData.fecha_caducidad || !formData.cantidad) {
-      Swal.fire("Error", "Por favor, completa todos los campos.", "error");
+    if (
+      !formData.codigo_lote ||
+      !formData.id_producto ||
+      !formData.id_proveedor ||
+      !formData.id_sitio ||
+      !formData.fecha_fabricacion ||
+      !formData.fecha_caducidad
+    ) {
+      Swal.fire("Error", "Por favor, completa todos los campos correctamente.", "error");
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      await refetch();
+      // Si no hay error, procesar la solicitud
+      const response = await refetch();
 
       if (error) {
-        throw new Error(error.message || "Error al guardar el lote.");
+        Swal.fire("Error", "Ocurrió un problema al procesar la solicitud.", "error");
+        return;
       }
 
-      Swal.fire(
-        "Éxito",
-        loteModal.loteToEdit ? "Lote actualizado correctamente" : "Lote creado correctamente",
-        "success"
-      );
+      // Si los datos se procesan correctamente
+      if (data) {
+        Swal.fire("Éxito", loteModal.loteToEdit ? "Lote actualizado correctamente" : "Lote creado correctamente", "success");
 
-      setShouldRefetch(true);
-      loteModal.onClose();
+        setShouldRefetch(true);
+        loteModal.onClose();
+      }
     } catch (err) {
-      Swal.fire("Error", err.message || "Ocurrió un problema.", "error");
+      console.error("Error al procesar la solicitud:", err);
+      Swal.fire("Error", "Ocurrió un problema al procesar la solicitud.", "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -139,36 +125,27 @@ const LoteModal = ({ setShouldRefetch }: { setShouldRefetch: React.Dispatch<Reac
     const { name, value } = event.target;
     setFormData((prevData) => ({
       ...prevData,
-      [name]: name === "expirable" ? value === "true" : parseInt(value),
+      [name]: name === "id_producto" || name === "id_proveedor" || name === "id_sitio" || name === "cantidad"
+        ? parseInt(value, 10)
+        : value,
     }));
+  };
+
+  const renderSelectOptions = (data: any[], valueKey: string, nameKey: string) => {
+    return Array.isArray(data)
+      ? data.map((item) => ({ value: item[valueKey].toString(), name: item[nameKey] }))
+      : [];
   };
 
   const loteModalBody = (
     <Form onSubmit={handleSubmit}>
-      {/* Check if sitios, productos, and proveedores are loaded properly */}
-      <FormSelectInput
-        label="Sitio"
-        selectName="id_sitio"
-        selectId="id_sitio"
-        value={formData.id_sitio.toString()}
+      <FormInput
+        label="Código de Lote"
+        name="codigo_lote"
+        idInput="codigo_lote"
+        value={formData.codigo_lote}
         onChange={handleChange}
-        options={loadingSitios || !sitios.length ? [] : sitios.map((sitio) => ({ value: sitio.id.toString(), name: sitio.nombre }))}
-      />
-      <FormSelectInput
-        label="Producto"
-        selectName="id_producto"
-        selectId="id_producto"
-        value={formData.id_producto.toString()}
-        onChange={handleChange}
-        options={loadingProductos || !productos.length ? [] : productos.map((producto) => ({ value: producto.id.toString(), name: producto.nombre }))}
-      />
-      <FormSelectInput
-        label="Proveedor"
-        selectName="id_proveedor"
-        selectId="id_proveedor"
-        value={formData.id_proveedor.toString()}
-        onChange={handleChange}
-        options={loadingProveedores || !proveedores.length ? [] : proveedores.map((proveedor) => ({ value: proveedor.id.toString(), name: proveedor.nombre }))}
+        type="text"
       />
       <FormInput
         label="Fecha de Fabricación"
@@ -179,7 +156,7 @@ const LoteModal = ({ setShouldRefetch }: { setShouldRefetch: React.Dispatch<Reac
         type="date"
       />
       <FormInput
-        label="Fecha de Expiración"
+        label="Fecha de Caducidad"
         name="fecha_caducidad"
         idInput="fecha_caducidad"
         value={formData.fecha_caducidad}
@@ -190,21 +167,43 @@ const LoteModal = ({ setShouldRefetch }: { setShouldRefetch: React.Dispatch<Reac
         label="Cantidad"
         name="cantidad"
         idInput="cantidad"
-        value={formData.cantidad}
+        value={formData.cantidad.toString()}
         onChange={handleChange}
         type="number"
       />
       <FormSelectInput
-        label="¿Es Expirable?"
-        selectName="expirable"
-        selectId="expirable"
-        value={formData.expirable ? "true" : "false"}
+        label="Producto"
+        selectName="id_producto"
+        selectId="id_producto"
+        value={formData.id_producto.toString()}
         onChange={handleChange}
-        options={[
-          { value: "true", name: "Sí" },
-          { value: "false", name: "No" },
-        ]}
+        options={productos ? renderSelectOptions(productos, "id_producto", "nombre_producto") : []}
       />
+      <FormSelectInput
+        label="Proveedor"
+        selectName="id_proveedor"
+        selectId="id_proveedor"
+        value={formData.id_proveedor.toString()}
+        onChange={handleChange}
+        options={proveedores ? renderSelectOptions(proveedores, "id_proveedor", "nombre") : []}
+      />
+      <FormSelectInput
+        label="Sitio"
+        selectName="id_sitio"
+        selectId="id_sitio"
+        value={formData.id_sitio.toString()}
+        onChange={handleChange}
+        options={sitios ? renderSelectOptions(sitios, "id_sitio", "nombre_sitio") : []}
+      />
+      <div className="flex items-center">
+        <label className="mr-2">Lote Expirable</label>
+        <input
+          type="checkbox"
+          name="expirable"
+          checked={formData.expirable}
+          onChange={(e) => setFormData({ ...formData, expirable: e.target.checked })}
+        />
+      </div>
       <div>
         <Button
           type="submit"
@@ -227,3 +226,5 @@ const LoteModal = ({ setShouldRefetch }: { setShouldRefetch: React.Dispatch<Reac
 };
 
 export default LoteModal;
+
+

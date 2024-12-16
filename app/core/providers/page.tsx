@@ -12,10 +12,12 @@ import { IProvider } from "@/interfaces/IProvider";
 
 const ProveedoresPage = () => {
   const providerModal = useProviderModal();
+  const [shouldRefetch, setShouldRefetch] = useState<boolean>(false); // Estado para controlar el refetch
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(1);
   const rowsPerPage = 5;
 
+  // Hook de fetch para obtener los proveedores
   const { data: proveedoresData, loading, error, refetch } = useFetch<IProvider[]>({
     url: "/proveedores",
   });
@@ -39,7 +41,12 @@ const ProveedoresPage = () => {
     }
   };
 
-  const handleDeleteProvider = (id: number | string) => {
+  const handleAddNewProvider = () => {
+    providerModal.onOpen();
+  };
+
+  const handleDeleteProvider = async (id_proveedor: number | string) => {  // Cambié 'id' a 'id_proveedor'
+    console.log("ID de proveedor a eliminar:", id_proveedor);  // Verifica que el ID esté llegando correctamente
     Swal.fire({
       title: "¿Estás seguro?",
       text: "¡Esta acción no se puede deshacer!",
@@ -65,10 +72,14 @@ const ProveedoresPage = () => {
           const headers: HeadersInit = {
             "Content-Type": "application/json",
             Authorization: token ? `Bearer ${token}` : "",
-            "X-Tenant": tenant, 
+            "X-Tenant": tenant,
           };
 
-          const response = await fetch(`${config.API_BASE_URL}/proveedores/${id}`, {
+          if (!id_proveedor) {
+            throw new Error("ID del proveedor no encontrado");
+          }
+
+          const response = await fetch(`${config.API_BASE_URL}/proveedores/${id_proveedor}`, {  // Usa 'id_proveedor'
             method: "DELETE",
             headers,
           });
@@ -79,22 +90,25 @@ const ProveedoresPage = () => {
           }
 
           Swal.fire("Eliminado", "Proveedor eliminado correctamente", "success");
-
-          refetch();  // Refrescar la lista después de eliminar
-        } catch (error) {
-          Swal.fire("Error", "Ocurrió un problema al eliminar el proveedor", "error");
+          setShouldRefetch(true); // Refetch de los datos
+        } catch (err: any) {
+          Swal.fire("Error", err.message || "Ocurrió un problema al eliminar el proveedor", "error");
         }
       }
     });
   };
 
-  const handleAddNewProvider = () => {
-    providerModal.onOpen();
+  const handleEditProvider = (provider: IProvider) => {
+    providerModal.onOpen(provider);
   };
 
-  const handleEditProvider = (provider: IProvider) => {
-    providerModal.onOpen(provider); 
-  };
+  // Refetch los datos cuando se haya marcado
+  useEffect(() => {
+    if (shouldRefetch) {
+      refetch(); // Recargar los datos cuando se haya marcado
+      setShouldRefetch(false); // Restablecer el estado
+    }
+  }, [shouldRefetch, refetch]);
 
   return (
     <main className="flex justify-center items-start w-full min-h-[calc(100vh-80px)]">
@@ -108,12 +122,12 @@ const ProveedoresPage = () => {
             label="Añadir Nuevo Proveedor"
             type="button"
             variant="primary"
-            onClick={handleAddNewProvider} 
+            onClick={handleAddNewProvider}
           />
         </div>
-        
-        <ProviderModal setShouldRefetch={refetch} />
-        
+
+        <ProviderModal setShouldRefetch={setShouldRefetch} />
+
         <div className="flex flex-col w-full">
           <h2 className="font-bold text-xl text-gray-700 mb-4">Lista de Proveedores</h2>
           {loading && <p className="text-gray-500">Cargando...</p>}
@@ -122,26 +136,13 @@ const ProveedoresPage = () => {
           {!loading && !error && proveedores.length > 0 ? (
             <>
               <Table
-                data={getPaginatedData()}
-                columns={6}  // Ajusta el número de columnas según los campos de tu interfaz
-                rowsPerPage={rowsPerPage}
-                onEdit={handleEditProvider} 
-                onDelete={handleDeleteProvider} 
-              />
-              <div className="flex justify-between">
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                >
-                  Anterior
-                </button>
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                >
-                  Siguiente
-                </button>
-              </div>
+  data={proveedores}  // Datos de proveedores
+  columns={5}
+  rowsPerPage={5}
+  onEdit={handleEditProvider}
+  onDelete={handleDeleteProvider}
+  idField="id_proveedor"  // Especificamos el campo id_proveedor
+/>
             </>
           ) : (
             <p>No hay proveedores registrados.</p>

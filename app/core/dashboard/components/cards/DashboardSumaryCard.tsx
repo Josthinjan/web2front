@@ -1,11 +1,11 @@
-import React from 'react'
+import React from 'react';
 
 interface DashboardSumaryCardProps {
-  label: string
-  value: number
-  labelForegound?: string
-  
+  label: string;
+  value: number;
+  labelForegound?: string;
 }
+
 const DashboardSumaryCard = ({ label, value, labelForegound }: DashboardSumaryCardProps) => {
   return (
     <div className={`border-gray-400 rounded p-4 border hover:shadow-sm cursor-pointer`}>
@@ -16,7 +16,7 @@ const DashboardSumaryCard = ({ label, value, labelForegound }: DashboardSumaryCa
         {value}
       </p>
     </div>
-  )
+  );
 }
 
 export default DashboardSumaryCard;

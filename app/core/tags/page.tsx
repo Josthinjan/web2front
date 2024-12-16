@@ -1,125 +1,109 @@
-//pagina de etiquetas
-
 "use client";
+import React, { useState, useEffect } from "react";
 import Button from "@/components/shared/Button/Button";
 import LateralNavbar from "@/components/ui/lateralNavbar/LateralNavbar";
-import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 import { config } from "@/config/config";
-import { getTokenFromCookie } from '@/config/config';
-import Label from "@/components/ui/label/Label";
 import { useTagModal } from "@/hooks/modals/useTagModal";
 import TagModal from "@/components/ui/modals/TagModal";
-import Table from "@/components/shared/Table/Table"; // Importa el componente Table
-
-// Los tags de ejemplo
-const tags = [
-  { id: 1, name: 'Electrónica', color: '#0000FF', prioridad: 'Alta' },
-  { id: 2, name: 'Informática', color: '#008000', prioridad: 'Media' },
-  { id: 3, name: 'Salud', color: '#FF0000', prioridad: 'Inactivo' },
-  { id: 4, name: 'Hogar', color: '#800080', prioridad: 'Activo' },
-  { id: 5, name: 'Deportes', color: '#FFA500', prioridad: 'Activo' },
-  { id: 6, name: 'Moda', color: '#FFC0CB', prioridad: 'Inactivo' },
-  { id: 7, name: 'Educación', color: '#FFFF00', prioridad: 'Activo' },
-  { id: 8, name: 'Arte', color: '#A52A2A', prioridad: 'Activo' },
-  { id: 9, name: 'Cultura', color: '#808080', prioridad: 'Inactivo' },
-  { id: 10, name: 'Viajes', color: '#00FFFF', prioridad: 'Activo' }
-];
-
-// Función para enviar datos de la etiqueta
-const submitEtiquetaData = async (etiquetaData: any) => {
-  const token = getTokenFromCookie();
-  const response = await fetch(`${config.API_BASE_URL}/etiquetas`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`
-    },
-    body: JSON.stringify(etiquetaData),
-  });
-  if (!response.ok) {
-    throw new Error('Error al enviar los datos de la etiqueta');
-  }
-  return response.json();
-};
+import { useFetch } from "@/hooks/useFetch";
+import Table from "@/components/shared/Table/Table";
+import Label from "@/components/ui/label/Label";
 
 const EtiquetasPage = () => {
   const tagModal = useTagModal();
-  const [etiquetas, setEtiquetas] = useState<any[]>(tags);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [totalPages, setTotalPages] = useState<number>(2);
-  const [showCreateLabelForm, setShowCreateLabelForm] = useState<boolean>(false);
+  const [shouldRefetch, setShouldRefetch] = useState<boolean>(false); // Estado para controlar el refetch
 
-  // Obtener datos de paginación
-  const getPaginatedData = () => {
-    const startIndex = (currentPage - 1) * 5;
-    const endIndex = startIndex + 5;
-    return etiquetas.slice(startIndex, endIndex);
-  };
+  // Hook de fetch para obtener las etiquetas
+  const { data: etiquetas, error, loading, refetch } = useFetch({ url: "/etiquetas" });
 
-  // Mostrar formulario de nueva etiqueta
+  // Cargar las etiquetas de la API
+  useEffect(() => {
+    if (etiquetas) {
+      console.log("Datos recibidos de la API:", etiquetas);
+    }
+  }, [etiquetas]);
+
+  useEffect(() => {
+    if (error) {
+      console.error("Error al obtener las etiquetas:", error);
+    }
+  }, [error]);
+
+  useEffect(() => {
+    if (loading) {
+      console.log("Cargando etiquetas...");
+    }
+  }, [loading]);
+
   const handleAddNewLabel = () => {
-    setShowCreateLabelForm(true);
-    tagModal.onOpen(); // Abre el modal al añadir nueva etiqueta
+    tagModal.onOpen();
   };
 
-  // Enviar datos de la etiqueta al backend
-  const handleSubmitEtiqueta = async (etiquetaData: any) => {
-    try {
-      const response = await submitEtiquetaData(etiquetaData);
-      if (response && response.message) {
-        const nuevaEtiqueta = response.etiqueta;
-        if (nuevaEtiqueta && nuevaEtiqueta.id_etiqueta) {
-          setEtiquetas([...etiquetas, nuevaEtiqueta]);
-          setShowCreateLabelForm(false);
-          Swal.fire("Éxito", response.message, "success");
-          tagModal.onClose(); // Cierra el modal después de crear la etiqueta
-        } else {
-          Swal.fire("Error", "No se pudo crear la etiqueta correctamente.", "error");
-        }
-      } else {
-        Swal.fire("Error", "No se recibió una respuesta válida del servidor.", "error");
-      }
-    } catch (error) {
-      Swal.fire("Error", "Ocurrió un problema al crear la etiqueta", "error");
-    }
-  };
-
-  // Cambiar de página en la paginación
-  const handlePageChange = (newPage: number) => {
-    if (newPage > 0 && newPage <= totalPages) {
-      setCurrentPage(newPage);
-    }
-  };
-
-  // Eliminar etiqueta
-  const handleDeleteTag = (id: number | string) => {
+  const handleDeleteTag = async (id_etiqueta: number | string) => {
+    console.log("ID de la etiqueta a eliminar:", id_etiqueta);  // Verifica que el ID esté llegando correctamente
     Swal.fire({
-      title: '¿Estás seguro?',
+      title: "¿Estás seguro?",
       text: "¡Esta acción no se puede deshacer!",
-      icon: 'warning',
+      icon: "warning",
       showCancelButton: true,
-      confirmButtonText: 'Sí, eliminar',
-      cancelButtonText: 'Cancelar'
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar",
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          // Aquí llamas al servicio para eliminar la etiqueta
-          setEtiquetas(etiquetas.filter(tag => tag.id !== id)); // Elimina de la lista local
+          const token = sessionStorage.getItem("token") || 
+            document.cookie.split("; ")
+              .find((row) => row.startsWith("token="))
+              ?.split("=")[1];
+  
+          const tenant = sessionStorage.getItem("X_Tenant");
+  
+          if (!tenant) {
+            Swal.fire("Error", "El tenant no está especificado", "error");
+            return;
+          }
+  
+          const headers: HeadersInit = {
+            "Content-Type": "application/json",
+            Authorization: token ? `Bearer ${token}` : "",
+            "X-Tenant": tenant,
+          };
+  
+          const response = await fetch(`${config.API_BASE_URL}/etiquetas/${id_etiqueta}`, {
+            method: "DELETE",
+            headers,
+          });
+  
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData?.error || `Error ${response.status}`);
+          }
+  
           Swal.fire("Eliminado", "Etiqueta eliminada correctamente", "success");
-        } catch (error) {
-          Swal.fire("Error", "Ocurrió un problema al eliminar la etiqueta", "error");
+  
+          // Marcar que necesitamos refetch de los datos
+          setShouldRefetch(true);
+        } catch (err: any) {
+          Swal.fire("Error", err.message || "Ocurrió un problema al eliminar la etiqueta", "error");
         }
       }
     });
   };
 
-  // Editar etiqueta
   const handleEditTag = (tag: any) => {
-    tagModal.onOpen(tag); // Abre el modal con los datos de la etiqueta a editar
+    tagModal.onOpen(tag);
+    // Marcar que necesitamos refetch de los datos después de editar
+    setShouldRefetch(true);
   };
+
+  // Refetch los datos cuando se haya marcado
+  useEffect(() => {
+    if (shouldRefetch) {
+      refetch(); // Recargar los datos cuando se haya marcado
+      setShouldRefetch(false); // Restablecer el estado
+    }
+  }, [shouldRefetch, refetch]);
 
   return (
     <main className="flex justify-center items-start w-full min-h-[calc(100vh-80px)]">
@@ -133,46 +117,29 @@ const EtiquetasPage = () => {
             label="Añadir Nueva Etiqueta"
             type="button"
             variant="primary"
-            onClick={handleAddNewLabel} // Llamar a la función para abrir el modal
+            onClick={handleAddNewLabel}
           />
         </div>
-        <TagModal />
+        <TagModal setShouldRefetch={setShouldRefetch} />
         <div className="flex flex-col w-full">
           <h2 className="font-bold text-xl text-gray-700 mb-4">Lista de Etiquetas Disponibles</h2>
-          {loading && <Label type="info" text="Cargando etiquetas" />}
-          {error && <Label type="error" text={error} />}
-          
-          {!loading && !error && etiquetas.length > 0 ? (
-            <>
-              <Table
-                data={getPaginatedData()}
-                columns={4}
-                rowsPerPage={5}
-                onEdit={handleEditTag} // Función para editar
-                onDelete={handleDeleteTag} // Función para eliminar
-              />
-              <div className="flex justify-between mt-4 w-full">
-                <button
-                  className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                >
-                  Anterior
-                </button>
-                <span>
-                  Página {currentPage} de {totalPages}
-                </span>
-                <button
-                  className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                >
-                  Siguiente
-                </button>
-              </div>
-            </>
-          ) : (
-            !loading && <Label type="info" text="No hay etiquetas para mostrar." />
+          {loading && <Label type="info" text="Cargando etiquetas..." />}
+          {error && <Label type="error" text="Error al cargar los datos." />}
+          {!loading && !error && etiquetas && etiquetas.length === 0 && (
+            <Label type="info" text="No hay etiquetas para mostrar." />
+          )}
+          {!loading && !error && etiquetas && etiquetas.length > 0 && (
+            <Table
+              data={etiquetas}
+              columns={6}
+              rowsPerPage={5}
+              onEdit={handleEditTag}
+              onDelete={(id) => {
+                console.log("ID que se pasa a onDelete:", id); // Verifica el id aquí
+                handleDeleteTag(id);
+              }} 
+              idField="id_etiqueta"
+            />
           )}
         </div>
       </div>

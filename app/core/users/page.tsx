@@ -1,140 +1,183 @@
 "use client";
-
-import LateralNavbar from "@/components/ui/lateralNavbar/LateralNavbar";
-import React, { useEffect, useState } from "react";
-import { IUser } from "@/interfaces/IUser";
+import React, { useState, useEffect } from "react";
 import Button from "@/components/shared/Button/Button";
-import { useFetch } from "@/hooks/useFetch";
-import Label from "@/components/ui/label/Label";
+import LateralNavbar from "@/components/ui/lateralNavbar/LateralNavbar";
+import Swal from "sweetalert2";
+import { config } from "@/config/config";
+import { useUserModal } from "@/hooks/modals/useUserModal";
 import UserModal from "@/components/ui/modals/UserModal";
-import { useUserModal, useUserEditModal } from "@/hooks/modals/useUserModal";
+import { useFetch } from "@/hooks/useFetch";
 import Table from "@/components/shared/Table/Table";
-import UserEditModal from "@/components/ui/modals/userEditModal";
+import Label from "@/components/ui/label/Label";
 
-const Page = () => {
-  const [users, setUsers] = useState<IUser[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const rowsPerPage = 5; // Filas por página
-
+const UsuariosPage = () => {
   const userModal = useUserModal();
-  const userEditModal = useUserEditModal();
-  const [formData, setFormData] = useState<IUser>({
-    name: "",
-    email: "",
-    cellphone: "",
-    role: "",
-    identity: "",
-    lastname: "",
+  const [shouldRefetch, setShouldRefetch] = useState<boolean>(false);
+  const [usuarios, setUsuarios] = useState<any[]>([]);  // Estado para almacenar usuarios
+  const [pagination, setPagination] = useState<any>({}); // Estado para la paginación
+  const [currentPage, setCurrentPage] = useState(1); // Estado para la página actual
+
+  // Hook de fetch para obtener los usuarios
+  const { data, error, loading, refetch } = useFetch({
+    url: `/usuarios?page=${currentPage}`, // Incluir la página en la URL
   });
 
-  const {
-    data: userData,
-    error: userError,
-    loading: userLoading,
-  } = useFetch({
-    url: "/api/users",
-  });
-
-  // El estado se actualiza cuando los datos de usuario se carguen
+  // Cargar los usuarios de la API
   useEffect(() => {
-    if (userData) {
-      setUsers(userData);
+    if (data) {
+      setUsuarios(data.data);  // Extraer solo los datos de los usuarios
+      setPagination({
+        total: data.total,
+        perPage: data.per_page,
+        currentPage: data.current_page,
+        lastPage: data.last_page,
+      });
     }
-  }, [userData]);
+  }, [data]);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
+  useEffect(() => {
+    if (error) {
+      console.error("Error al obtener los usuarios:", error);
+    }
+  }, [error]);
+
+  useEffect(() => {
+    if (loading) {
+      console.log("Cargando usuarios...");
+    }
+  }, [loading]);
+
+  const handleAddNewUser = () => {
+    userModal.onOpen();
+  };
+
+  const handleDeleteUser = async (id_usuario: number | string) => {
+    Swal.fire({
+      title: "¿Estás seguro?",
+      text: "¡Esta acción no se puede deshacer!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar",
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const token = sessionStorage.getItem("token") || 
+            document.cookie.split("; ")
+              .find((row) => row.startsWith("token="))
+              ?.split("=")[1];
+
+          const tenant = sessionStorage.getItem("X_Tenant"); // Aquí recuperas el tenant
+
+          if (!tenant) {
+            Swal.fire("Error", "El tenant no está especificado", "error");
+            return;
+          }
+
+          const tenantDatabase = tenant; // Este campo debe ser el nombre de la base de datos o identificador de tenant, verifica si es necesario
+          
+          const headers: HeadersInit = {
+            "Content-Type": "application/json",
+            Authorization: token ? `Bearer ${token}` : "",
+            "X-Tenant": tenant,
+            "tenant_database": tenantDatabase, // Agregar aquí el tenant_database
+          };
+
+          const response = await fetch(`${config.API_BASE_URL}/usuarios/${id_usuario}`, {
+            method: "DELETE",
+            headers,
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData?.error || `Error ${response.status}`);
+          }
+
+          Swal.fire("Eliminado", "Usuario eliminado correctamente", "success");
+
+          setShouldRefetch(true);  // Indicar que se debe hacer un refetch
+        } catch (err: any) {
+          Swal.fire("Error", err.message || "Ocurrió un problema al eliminar el usuario", "error");
+        }
+      }
     });
   };
 
-  // Función para eliminar usuario
-  const handleDelete = (id: number|string) => {
-    const updatedUsers = users.filter((user) => user.id !== id);
-    setUsers(updatedUsers);
+  const handleEditUser = (user: any) => {
+    userModal.onOpen(user);
+    setShouldRefetch(true);
   };
-
-  // Función para editar usuario
-  const handleEdit = (user: IUser) => {
-    userEditModal.onOpen(user); // Pasa el usuario completo
-  };
-
-  // Paginación
-  const totalPages = Math.ceil(users.length / rowsPerPage);
-  const paginatedData = users.slice(
-    (currentPage - 1) * rowsPerPage,
-    currentPage * rowsPerPage
-  );
 
   const handlePageChange = (newPage: number) => {
-    if (newPage > 0 && newPage <= totalPages) {
-      setCurrentPage(newPage);
-    }
+    setCurrentPage(newPage);  // Actualizar la página cuando se navegue
   };
 
+  useEffect(() => {
+    if (shouldRefetch) {
+      refetch();
+      setShouldRefetch(false);
+    }
+  }, [shouldRefetch, refetch]);
+
   return (
-    <main className="flex justify-center items-start w-full">
+    <main className="flex justify-center items-start w-full min-h-[calc(100vh-80px)]">
       <LateralNavbar />
-      <div className="w-full flex flex-col justify-start items-start min-h-[calc(90vh-80px)] p-4">
-        {userLoading && <Label type="info" text="Cargando usuarios" />}
-        {userError && <Label type="error" text="Error al cargar usuarios" />}
+      <div className="w-full flex flex-col p-4">
         <div className="text-start w-full mb-4">
-          <h1 className="text-2xl font-bold">Administración de usuarios</h1>
+          <h1 className="text-2xl font-bold">Administración de Usuarios</h1>
         </div>
-        <div className="flex mb-4">
+        <div className="flex gap-3 justify-start items-center mb-6">
           <Button
+            label="Añadir Nuevo Usuario"
             type="button"
-            onClick={userModal.onOpen}
             variant="primary"
-            label="Crear usuario"
+            onClick={handleAddNewUser}
           />
         </div>
-        <UserModal />
-        {/* Mostrar el modal de edición si está abierto */}
-        {userEditModal.isOpen && userEditModal.userToEdit && (
-          <UserEditModal
-            userToEdit={userEditModal.userToEdit} // Pasar el usuario a editar
-            onClose={userEditModal.onClose} // Función para cerrar el modal
-          />
-        )}
-        {users.length > 0 ? (
-          <>
+        <UserModal setShouldRefetch={setShouldRefetch} />
+        <div className="flex flex-col w-full">
+          <h2 className="font-bold text-xl text-gray-700 mb-4">Lista de Usuarios</h2>
+          {loading && <Label type="info" text="Cargando usuarios..." />}
+          {error && <Label type="error" text="Error al cargar los datos." />}
+          {!loading && !error && usuarios.length === 0 && (
+            <Label type="info" text="No hay usuarios para mostrar." />
+          )}
+          {!loading && !error && usuarios.length > 0 && (
             <Table
-              data={paginatedData}
-              columns={7}
-              rowsPerPage={rowsPerPage}
-              onDelete={handleDelete}
-              onEdit={handleEdit}
+              data={usuarios}
+              columns={6}
+              rowsPerPage={pagination.perPage}
+              onEdit={handleEditUser}
+              onDelete={handleDeleteUser}
+              idField="id"
             />
-            <div className="flex justify-between mt-4 w-full">
-              <button
-                className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+          )}
+          {/* Agregar controles de paginación */}
+          {pagination.total > pagination.perPage && (
+            <div className="flex justify-between items-center mt-4">
+              <Button
+                label="Anterior"
+                type="button"
+                variant="secondary"
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
-              >
-                Anterior
-              </button>
+              />
               <span>
-                Página {currentPage} de {totalPages}
+                Página {currentPage} de {pagination.lastPage}
               </span>
-              <button
-                className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+              <Button
+                label="Siguiente"
+                type="button"
+                variant="secondary"
                 onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-              >
-                Siguiente
-              </button>
+                disabled={currentPage === pagination.lastPage}
+              />
             </div>
-          </>
-        ) : (
-          !userLoading && <Label type="info" text="No hay usuarios para mostrar." />
-        )}
+          )}
+        </div>
       </div>
     </main>
   );
 };
 
-export default Page;
+export default UsuariosPage;

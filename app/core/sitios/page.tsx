@@ -145,6 +145,7 @@ const SitesPage = () => {
                 rowsPerPage={rowsPerPage}
                 onEdit={handleEditSite}
                 onDelete={handleDeleteSite}
+                idField="id_sitio"
               />
               <div className="flex justify-between mt-4 w-full">
                 <button

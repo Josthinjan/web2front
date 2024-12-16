@@ -1,4 +1,5 @@
-"use client";
+'use client';
+
 import React, { useState, useEffect } from "react";
 import Button from "@/components/shared/Button/Button";
 import LateralNavbar from "@/components/ui/lateralNavbar/LateralNavbar";
@@ -13,7 +14,7 @@ import Label from "@/components/ui/label/Label";
 const ProductsPage = () => {
   const productModal = useProductsModal();
   const [productos, setProductos] = useState<Array<Record<string, any>>>([]);
-  const [shouldRefetch, setShouldRefetch] = useState<boolean>(false); // Estado para controlar el refetch
+  const [shouldRefetch, setShouldRefetch] = useState<boolean>(false);
 
   // Hook de fetch
   const { data: responseData, error, loading, refetch } = useFetch({ url: "/productos" });
@@ -21,10 +22,7 @@ const ProductsPage = () => {
   // Cargar los productos de la API
   useEffect(() => {
     if (responseData) {
-      console.log("Datos recibidos de la API:", responseData);
-      setProductos(responseData); // Asignar directamente el array de productos
-    } else {
-      console.log("No se recibieron datos o la respuesta está vacía.");
+      setProductos(responseData);
     }
   }, [responseData]);
 
@@ -39,10 +37,6 @@ const ProductsPage = () => {
       console.log("Cargando productos...");
     }
   }, [loading]);
-
-  useEffect(() => {
-    console.log("Estado de productos:", productos); // Verificar que 'productos' tiene datos
-  }, [productos]);
 
   const handleAddNewProduct = () => {
     productModal.onOpen();
@@ -89,7 +83,6 @@ const ProductsPage = () => {
 
           Swal.fire("Eliminado", "Producto eliminado correctamente", "success");
           
-          // Marcar que necesitamos refetch de los datos
           setShouldRefetch(true); 
         } catch (err: any) {
           Swal.fire("Error", err.message || "Ocurrió un problema al eliminar el producto", "error");
@@ -100,15 +93,61 @@ const ProductsPage = () => {
 
   const handleEditProduct = (product: any) => {
     productModal.onOpen(product);
-    // Marcar que necesitamos refetch de los datos después de editar
     setShouldRefetch(true);
   };
 
-  // Refetch los datos cuando se haya marcado
+  // Manejar mostrar código de barras
+  const handleShowBarcode = async (id: string | number) => {
+    try {
+      const token = sessionStorage.getItem("token") || 
+        document.cookie.split("; ")
+          .find((row) => row.startsWith("token="))
+          ?.split("=")[1];
+
+      const tenant = sessionStorage.getItem("X_Tenant");
+
+      if (!tenant) {
+        Swal.fire("Error", "El tenant no está especificado", "error");
+        return;
+      }
+
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+        Authorization: token ? `Bearer ${token}` : "",
+        "X-Tenant": tenant,
+      };
+
+      // Realizar el fetch a la API para obtener el código de barras
+      const response = await fetch(`${config.API_BASE_URL}/lote/${id}/barcode`, {
+        method: "GET", // Puede ser GET o POST, dependiendo de la API
+        headers,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData?.error || `Error ${response.status}`);
+      }
+
+      const barcodeData = await response.json();
+      console.log("Código de barras:", barcodeData);
+
+      // Mostrar el código de barras de alguna manera (por ejemplo, generando una imagen)
+      Swal.fire({
+        title: "Código de Barras",
+        text: `Código: ${barcodeData.barcode}`, // Suponiendo que la API devuelve el código en la propiedad 'barcode'
+        icon: "info",
+        confirmButtonText: "Cerrar",
+      });
+
+    } catch (error: any) {
+      Swal.fire("Error", error.message || "Ocurrió un problema al obtener el código de barras", "error");
+    }
+  };
+
   useEffect(() => {
     if (shouldRefetch) {
-      refetch(); // Recargar los datos cuando se haya marcado
-      setShouldRefetch(false); // Restablecer el estado
+      refetch(); 
+      setShouldRefetch(false);
     }
   }, [shouldRefetch, refetch]);
 
@@ -142,6 +181,8 @@ const ProductsPage = () => {
               rowsPerPage={5}
               onEdit={handleEditProduct}
               onDelete={handleDeleteProduct}
+              idField="id_producto"
+              onShowBarcode={handleShowBarcode} // Pasamos la función aquí
             />
           )}
         </div>
