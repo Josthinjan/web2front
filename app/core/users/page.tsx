@@ -24,7 +24,7 @@ const UsuariosPage = () => {
 
   // Cargar los usuarios de la API
   useEffect(() => {
-    if (data) {
+    if (data && Array.isArray(data.data)) {
       setUsuarios(data.data);  // Extraer solo los datos de los usuarios
       setPagination({
         total: data.total,
@@ -32,6 +32,8 @@ const UsuariosPage = () => {
         currentPage: data.current_page,
         lastPage: data.last_page,
       });
+    } else {
+      setUsuarios([]);  // Asegurarse de que usuarios sea un array vacío si no hay datos
     }
   }, [data]);
 

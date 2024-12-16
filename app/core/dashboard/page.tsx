@@ -9,37 +9,53 @@ import { useFetch } from "@/hooks/useFetch";
 import { config, getTokenFromCookie } from "@/config/config";
 
 const DashboardPage = () => {
-  const [usuarios, setUsuarios] = useState<number>(0);
-  const [retornos, setRetornos] = useState<number>(0);
-  const [sitios, setSitios] = useState<number>(0);
-  const [proveedores, setProveedores] = useState<number>(0);
-  const [comprobantes, setComprobantes] = useState<number>(0);
-  const [productosRecientes, setProductosRecientes] = useState<any[]>([]);
+  const [role, setRole] = useState<string | null>(null);
+  const [summaryData, setSummaryData] = useState({
+    usuarios: 0,
+    proveedores: 0,
+    sitios: 0,
+    comprobantes: 0,
+    retornos: 0,
+    planes: 0,
+    metodosPago: 0,
+    qaBot: 0,
+  });
+  const [recentItems, setRecentItems] = useState<any[]>([]);
 
-  // Fetching data
-  const { data: providerData, error: providerError, loading: providerLoading } = useFetch({ url: "/proveedores" });
+  useEffect(() => {
+    const userRole = sessionStorage.getItem("role");
+    setRole(userRole);
+  }, []);
+
+  // Fetches for non-admin role
   const { data: userData, error: userError, loading: userLoading } = useFetch({ url: "/usuarios" });
-  const { data: comprobanteData, error: comprobanteError, loading: comprobanteLoading } = useFetch({ url: "/comprobantes" });
-  const { data: retornoData, error: retornoError, loading: retornoLoading } = useFetch({ url: "/retornos" });
+  const { data: providerData, error: providerError, loading: providerLoading } = useFetch({ url: "/proveedores" });
   const { data: sitioData, error: sitioError, loading: sitioLoading } = useFetch({ url: "/sitios" });
   const { data: productoData, error: productoError, loading: productoLoading } = useFetch({ url: "/productos" });
 
-  useEffect(() => {
-    if (userData && Array.isArray(userData.data)) setUsuarios(userData.data.length);
-    if (providerData && Array.isArray(providerData)) setProveedores(providerData.length);
-    if (sitioData && sitioData.data && Array.isArray(sitioData.data)) setSitios(sitioData.data.length);
-  }, [userData, providerData, comprobanteData, retornoData, sitioData]);
+  // Fetches for admin role
+  const { data: planData, error: planError, loading: planLoading } = useFetch({ url: "/planes" });
+  const { data: metodoPagoData, error: metodoPagoError, loading: metodoPagoLoading } = useFetch({ url: "/metodos-pago" });
+  const { data: qaData, error: qaError, loading: qaLoading } = useFetch({ url: "/questions" });
 
   useEffect(() => {
-    if (productoData && productoData.length > 0) {
-      setProductosRecientes(productoData.slice(0, 5)); // Show only the first 5 products
+    if (role === "Admin") {
+      if (planData && Array.isArray(planData)) setSummaryData((prev) => ({ ...prev, planes: planData.length }));
+      if (metodoPagoData && Array.isArray(metodoPagoData)) setSummaryData((prev) => ({ ...prev, metodosPago: metodoPagoData.length }));
+      if (qaData && Array.isArray(qaData)) setSummaryData((prev) => ({ ...prev, qaBot: qaData.length }));
+      if (planData && planData.length > 0) setRecentItems(planData.slice(0, 5));
+    } else {
+      if (userData && Array.isArray(userData.data)) setSummaryData((prev) => ({ ...prev, usuarios: userData.data.length }));
+      if (providerData && Array.isArray(providerData)) setSummaryData((prev) => ({ ...prev, proveedores: providerData.length }));
+      if (sitioData && sitioData.data && Array.isArray(sitioData.data)) setSummaryData((prev) => ({ ...prev, sitios: sitioData.data.length }));
+      if (productoData && productoData.length > 0) setRecentItems(productoData.slice(0, 5));
     }
-  }, [productoData]);
+  }, [role, userData, providerData, sitioData, productoData, planData, metodoPagoData, qaData]);
 
-  const handleExportExcel = async () => {
+  const handleExport = async (type: "excel" | "sql") => {
     try {
-      const token = getTokenFromCookie();  // Obtén el token desde la cookie
-      const tenant = sessionStorage.getItem("X_Tenant");  // Obtén el tenant desde sessionStorage
+      const token = getTokenFromCookie();
+      const tenant = sessionStorage.getItem("X_Tenant");
 
       if (!tenant) {
         alert("El tenant no está especificado");
@@ -51,56 +67,20 @@ const DashboardPage = () => {
         "X-Tenant": tenant,
       };
 
-      const response = await fetch(`${config.API_BASE_URL}/exportar/excel`, {
+      const response = await fetch(`${config.API_BASE_URL}/exportar/${type}`, {
         method: "GET",
-        headers: headers,
+        headers,
       });
 
-      if (!response.ok) {
-        throw new Error("Error al exportar a Excel");
-      }
+      if (!response.ok) throw new Error(`Error al exportar a ${type.toUpperCase()}`);
 
       const blob = await response.blob();
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
-      link.download = `${tenant}.xlsx`; // Usamos el nombre del tenant como nombre de archivo
+      link.download = `${tenant}.${type}`;
       link.click();
     } catch (error) {
-      console.error("Error al exportar a Excel:", error);
-    }
-  };
-
-  const handleExportSQL = async () => {
-    try {
-      const token = getTokenFromCookie();  // Obtén el token desde la cookie
-      const tenant = sessionStorage.getItem("X_Tenant");  // Obtén el tenant desde sessionStorage
-
-      if (!tenant) {
-        alert("El tenant no está especificado");
-        return;
-      }
-
-      const headers = {
-        Authorization: `Bearer ${token}`,
-        "X-Tenant": tenant,
-      };
-
-      const response = await fetch(`${config.API_BASE_URL}/exportar/sql`, {
-        method: "GET",
-        headers: headers,
-      });
-
-      if (!response.ok) {
-        throw new Error("Error al exportar a SQL");
-      }
-
-      const blob = await response.blob();
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = `${tenant}.sql`; // Usamos el nombre del tenant como nombre de archivo
-      link.click();
-    } catch (error) {
-      console.error("Error al exportar a SQL:", error);
+      console.error(`Error al exportar a ${type.toUpperCase()}:`, error);
     }
   };
 
@@ -108,64 +88,59 @@ const DashboardPage = () => {
     <main className="flex justify-start items-start w-full min-h-[calc(100vh-80px)]">
       <LateralNavbar />
       <div className="w-full flex flex-col justify-start items-center h-full p-3">
-        {userLoading && <Label type="info" text="Cargando usuarios..." />}
-        {providerLoading && <Label type="info" text="Cargando proveedores..." />}
-        {sitioLoading && <Label type="info" text="Cargando sitios..." />}
-        {productoLoading && <Label type="info" text="Cargando productos..." />}
-        
-        {userError && <Label type="error" text="Error al cargar los usuarios" />}
-        {providerError && <Label type="error" text="Error al cargar los proveedores" />}
-        {sitioError && <Label type="error" text="Error al cargar los sitios" />}
-        {productoError && <Label type="error" text="Error al cargar los productos" />}
+        {(role === "Admin" ? planLoading || metodoPagoLoading || qaLoading : userLoading || providerLoading || sitioLoading || productoLoading) && (
+          <Label type="info" text="Cargando datos..." />
+        )}
+
+        {(role === "Admin" ? planError || metodoPagoError || qaError : userError || providerError || sitioError || productoError) && (
+          <Label type="error" text="Error al cargar los datos" />
+        )}
 
         <div className="text-gray-600 w-full">
           <h1 className="text-2xl font-bold">Administración General</h1>
         </div>
         <div className="flex gap-3 justify-start w-full items-center py-10">
-          <DashboardSumaryCard 
-            label="Total Usuarios" 
-            value={usuarios || 0} 
-            labelForegound={usuarios === 0 ? 'text-gray-400' : 'text-yellow-400'} 
-          />
-          <DashboardSumaryCard 
-            label="Total Proveedores" 
-            value={proveedores || 0} 
-            labelForegound={proveedores === 0 ? 'text-gray-400' : 'text-red-400'} 
-          />
-          <DashboardSumaryCard 
-            label="Total Sitios" 
-            value={sitios || 0} 
-            labelForegound={sitios === 0 ? 'text-gray-400' : 'text-purple-400'} 
-          />
-          
-          {/* Contenedor de botones al lado de las Summary Cards */}
-          <div className="flex gap-4">
-            <Button 
-              label="Exportar a Excel" 
-              type="button" 
-              variant="primary" 
-              onClick={handleExportExcel}
-              className="w-[200px] px-6 py-3 bg-gradient-to-r from-blue-400 to-blue-600 text-white rounded-lg shadow-lg hover:bg-gradient-to-l hover:from-blue-600 hover:to-blue-400 transition duration-300"
-            />
-            <Button 
-              label="Exportar a SQL" 
-              type="button" 
-              variant="secondary" 
-              onClick={handleExportSQL}
-              className="w-[200px] px-6 py-3 bg-gradient-to-r from-green-400 to-green-600 text-white rounded-lg shadow-lg hover:bg-gradient-to-l hover:from-green-600 hover:to-green-400 transition duration-300"
-            />
-          </div>
+          {role === "Admin" ? (
+            <>
+              <DashboardSumaryCard label="Total Planes" value={summaryData.planes} labelForegound="text-blue-400" />
+              <DashboardSumaryCard label="Total Métodos de Pago" value={summaryData.metodosPago} labelForegound="text-green-400" />
+              <DashboardSumaryCard label="Total QA Bot" value={summaryData.qaBot} labelForegound="text-yellow-400" />
+            </>
+          ) : (
+            <>
+              <DashboardSumaryCard label="Total Usuarios" value={summaryData.usuarios} labelForegound="text-yellow-400" />
+              <DashboardSumaryCard label="Total Proveedores" value={summaryData.proveedores} labelForegound="text-red-400" />
+              <DashboardSumaryCard label="Total Sitios" value={summaryData.sitios} labelForegound="text-purple-400" />
+
+              <div className="flex gap-4">
+                <Button
+                  label="Exportar a Excel"
+                  type="button"
+                  variant="primary"
+                  onClick={() => handleExport("excel")}
+                  className="w-[200px] px-6 py-3 bg-gradient-to-r from-blue-400 to-blue-600 text-white rounded-lg shadow-lg hover:bg-gradient-to-l hover:from-blue-600 hover:to-blue-400 transition duration-300"
+                />
+                <Button
+                  label="Exportar a SQL"
+                  type="button"
+                  variant="secondary"
+                  onClick={() => handleExport("sql")}
+                  className="w-[200px] px-6 py-3 bg-gradient-to-r from-green-400 to-green-600 text-white rounded-lg shadow-lg hover:bg-gradient-to-l hover:from-green-600 hover:to-green-400 transition duration-300"
+                />
+              </div>
+            </>
+          )}
         </div>
 
         <div className="flex flex-col justify-center items-center w-full">
-          <h2 className="font-bold text-xl text-gray-600 py-3">Lista de Productos Recientes</h2>
-
-          {/* Mostrar la tabla de productos recientes sin el panel de acciones */}
+          <h2 className="font-bold text-xl text-gray-600 py-3">
+            {role === "Admin" ? "Lista de Planes Recientes" : "Lista de Productos Recientes"}
+          </h2>
           <Table
-            data={productosRecientes}
-            columns={5}  // Definimos las columnas explícitamente
-            rowsPerPage={5}  // Para mostrar solo 5 productos (sin paginación)
-            idField="id"  // Usar el campo 'id' como identificador
+            data={recentItems}
+            columns={5}
+            rowsPerPage={5}
+            idField="id"
           />
         </div>
       </div>
