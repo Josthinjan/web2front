@@ -8,7 +8,7 @@ const Header = () => {
     <header className="bg-white flex justify-between items-center p-4">
       <Logo />
       <nav className="flex justify-end items-center gap-4 ">
-        <NavLinkHeader title="planes" href="/planes" />
+        <NavLinkHeader title="Planes" href="/planes" />
         <NavLinkHeader title="Iniciar Sesion" href="/auth/login" />
         <Button variant="primary" label="Contactar ventas" onClick={() => console.log("Hola")} type="button"/>
         <Button variant="outline" label="Empezar" Icon={FaCaretRight} onClick={() => window.location.href = "/auth/login"} type="button"/>

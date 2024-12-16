@@ -52,36 +52,36 @@ const LotesPage = () => {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          const token = sessionStorage.getItem("token") || 
+          const token = sessionStorage.getItem("token") ||
             document.cookie.split("; ")
               .find((row) => row.startsWith("token="))
               ?.split("=")[1];
-  
+
           const tenant = sessionStorage.getItem("X_Tenant");
-  
+
           if (!tenant) {
             Swal.fire("Error", "El tenant no está especificado", "error");
             return;
           }
-  
+
           const headers: HeadersInit = {
             "Content-Type": "application/json",
             Authorization: token ? `Bearer ${token}` : "",
             "X-Tenant": tenant,
           };
-  
+
           const response = await fetch(`${config.API_BASE_URL}/lotes/${id_lote}`, {
             method: "DELETE",
             headers,
           });
-  
+
           if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData?.error || `Error ${response.status}`);
           }
-  
+
           Swal.fire("Eliminado", "Lote eliminado correctamente", "success");
-  
+
           // Marcar que necesitamos refetch de los datos
           setShouldRefetch(true);
         } catch (err: any) {
@@ -90,6 +90,67 @@ const LotesPage = () => {
       }
     });
   };
+
+
+  // Manejar mostrar código de barras
+  const handleShowBarcode = async (id: string | number) => {
+    try {
+      const token = sessionStorage.getItem("token") ||
+        document.cookie.split("; ")
+          .find((row) => row.startsWith("token="))
+          ?.split("=")[1];
+
+      const tenant = sessionStorage.getItem("X_Tenant");
+
+      if (!tenant) {
+        Swal.fire("Error", "El tenant no está especificado", "error");
+        return;
+      }
+
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+        Authorization: token ? `Bearer ${token}` : "",
+        "X-Tenant": tenant,
+      };
+
+      // Realizar el fetch a la API para obtener el código de barras
+      const response = await fetch(`${config.API_BASE_URL}/lote/${id}/barcode`, {
+        method: "GET", // Puede ser GET o POST, dependiendo de la API
+        headers,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData?.error || `Error ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const imageUrl = URL.createObjectURL(blob);
+
+      // Mostrar el código de barras de alguna manera (por ejemplo, generando una imagen)
+      Swal.fire({
+        title: "Código de Barras",
+        html: `
+        <img src="${imageUrl}" alt="Código de Barras" id="barcodeImage" style="width: 100%; height: auto;" />
+        <button id="printButton" style="margin-top: 10px;">Imprimir</button>
+      `,
+        icon: "info",
+        showConfirmButton: false,
+      });
+
+      // Agregar evento de impresión al botón
+      document.getElementById("printButton")?.addEventListener("click", () => {
+        const printWindow = window.open("", "_blank");
+        printWindow?.document.write(`<img src="${imageUrl}" alt="Código de Barras" style="width: 100%; height: auto;" />`);
+        printWindow?.document.close();
+        printWindow?.print();
+      });
+
+    } catch (error: any) {
+      Swal.fire("Error", error.message || "Ocurrió un problema al obtener el código de barras", "error");
+    }
+  };
+
 
   const handleEditLote = (lote: any) => {
     loteModal.onOpen(lote);
@@ -137,8 +198,10 @@ const LotesPage = () => {
               onDelete={(id) => {
                 console.log("ID que se pasa a onDelete:", id); // Verifica el id aquí
                 handleDeleteLote(id);
-              }} 
+              }}
               idField="id_lote" // Especificamos el campo id_lote
+              onShowBarcode={handleShowBarcode} // Pasamos la función aquí
+
             />
           )}
         </div>

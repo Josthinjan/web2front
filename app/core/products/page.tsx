@@ -53,7 +53,7 @@ const ProductsPage = () => {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          const token = sessionStorage.getItem("token") || 
+          const token = sessionStorage.getItem("token") ||
             document.cookie.split("; ")
               .find((row) => row.startsWith("token="))
               ?.split("=")[1];
@@ -82,8 +82,8 @@ const ProductsPage = () => {
           }
 
           Swal.fire("Eliminado", "Producto eliminado correctamente", "success");
-          
-          setShouldRefetch(true); 
+
+          setShouldRefetch(true);
         } catch (err: any) {
           Swal.fire("Error", err.message || "Ocurrió un problema al eliminar el producto", "error");
         }
@@ -97,9 +97,10 @@ const ProductsPage = () => {
   };
 
   // Manejar mostrar código de barras
+  // Manejar mostrar código de barras
   const handleShowBarcode = async (id: string | number) => {
     try {
-      const token = sessionStorage.getItem("token") || 
+      const token = sessionStorage.getItem("token") ||
         document.cookie.split("; ")
           .find((row) => row.startsWith("token="))
           ?.split("=")[1];
@@ -118,7 +119,7 @@ const ProductsPage = () => {
       };
 
       // Realizar el fetch a la API para obtener el código de barras
-      const response = await fetch(`${config.API_BASE_URL}/lote/${id}/barcode`, {
+      const response = await fetch(`${config.API_BASE_URL}/producto/${id}/barcode`, {
         method: "GET", // Puede ser GET o POST, dependiendo de la API
         headers,
       });
@@ -128,15 +129,26 @@ const ProductsPage = () => {
         throw new Error(errorData?.error || `Error ${response.status}`);
       }
 
-      const barcodeData = await response.json();
-      console.log("Código de barras:", barcodeData);
+      const blob = await response.blob();
+      const imageUrl = URL.createObjectURL(blob);
 
       // Mostrar el código de barras de alguna manera (por ejemplo, generando una imagen)
       Swal.fire({
         title: "Código de Barras",
-        text: `Código: ${barcodeData.barcode}`, // Suponiendo que la API devuelve el código en la propiedad 'barcode'
+        html: `
+         <img src="${imageUrl}" alt="Código de Barras" id="barcodeImage" style="width: 100%; height: auto;" />
+         <button id="printButton" style="margin-top: 10px;">Imprimir</button>
+       `,
         icon: "info",
-        confirmButtonText: "Cerrar",
+        showConfirmButton: false,
+      });
+
+      // Agregar evento de impresión al botón
+      document.getElementById("printButton")?.addEventListener("click", () => {
+        const printWindow = window.open("", "_blank");
+        printWindow?.document.write(`<img src="${imageUrl}" alt="Código de Barras" style="width: 100%; height: auto;" />`);
+        printWindow?.document.close();
+        printWindow?.print();
       });
 
     } catch (error: any) {
@@ -146,7 +158,7 @@ const ProductsPage = () => {
 
   useEffect(() => {
     if (shouldRefetch) {
-      refetch(); 
+      refetch();
       setShouldRefetch(false);
     }
   }, [shouldRefetch, refetch]);
