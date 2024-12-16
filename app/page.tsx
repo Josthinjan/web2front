@@ -7,6 +7,7 @@ import Header from "@/components/ui/landing/header";
 import Image from "next/image";
 import Button from "@/components/shared/Button/Button";
 import { FaCaretRight } from "react-icons/fa";
+import Assistant from "@/components/ui/landing/Assistant";
 
 const Home = () => {
   return (
@@ -17,11 +18,11 @@ const Home = () => {
           <div className="contenido-hero">
             <h2>Optimiza la Gestión de tu Inventario</h2><br />
             <p>Eficiente. Preciso. Confiable.</p><br /><br />
-            <Button variant="outline" label="Empezar" Icon={FaCaretRight} onClick={() => window.location.href = "/auth/login"} type="button"/>
+            <Button variant="outline" label="Empezar" Icon={FaCaretRight} onClick={() => window.location.href = "/auth/login"} type="button" />
           </div>
           <div className="imagen-hero">
             <Image
-              src="/fondo.jpg" 
+              src="/fondo.jpg"
               alt="Ilustración del Tablero"
               width={500}
               height={500}
@@ -30,13 +31,15 @@ const Home = () => {
         </div>
       </section>
 
+      <Assistant />
+
       <section className="flex flex-col justify-center items-center p-4">
         <h1 className='font-bold text-xl text-blue-400 my-6'>Caracteristias</h1>
         <div className="flex justify-center items-center gap-2">
           <div className="tarjeta-caracteristica">
             <Image
-              src="/seguimiento.png" 
-              alt="Icono Seguimiento" 
+              src="/seguimiento.png"
+              alt="Icono Seguimiento"
               width={100}
               height={100}
             />
@@ -45,7 +48,7 @@ const Home = () => {
           </div>
           <div className="tarjeta-caracteristica">
             <Image
-              src="/alerta.png" 
+              src="/alerta.png"
               alt="Icono Alertas"
               width={100}
               height={100}
@@ -55,7 +58,7 @@ const Home = () => {
           </div>
           <div className="tarjeta-caracteristica">
             <Image
-              src="/reporte.png" 
+              src="/reporte.png"
               alt="Icono Reportes"
               width={100}
               height={100}
